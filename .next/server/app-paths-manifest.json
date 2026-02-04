@@ -1,0 +1,11 @@
+{
+  "/api/invoices/route": "app/api/invoices/route.js",
+  "/api/leads/route": "app/api/leads/route.js",
+  "/api/customers/route": "app/api/customers/route.js",
+  "/api/job-cards/route": "app/api/job-cards/route.js",
+  "/crm/page": "app/crm/page.js",
+  "/marketing/page": "app/marketing/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/jessi-ai/page": "app/jessi-ai/page.js",
+  "/billing/page": "app/billing/page.js"
+}
