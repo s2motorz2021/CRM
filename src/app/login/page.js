@@ -120,7 +120,7 @@ export default function LoginPage() {
                     <img
                         src="/logo.png"
                         alt="S2 Motorz"
-                        style={{ width: '180px', height: 'auto', marginBottom: '20px', filter: 'brightness(1.2)' }}
+                        style={{ width: '180px', height: 'auto', marginBottom: '20px' }}
                     />
                     <h1 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 700, margin: 0, letterSpacing: '0.5px' }}>
                         Welcome to S2 Motorz
