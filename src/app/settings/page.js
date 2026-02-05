@@ -245,6 +245,7 @@ const sampleData = {
         { id: 4, name: 'Water Wash Bay', bayType: 'Water Wash', branch: 'Main Branch', isActive: true },
         { id: 5, name: 'Quick Service Bay', bayType: 'Quick Service', branch: 'Main Branch', isActive: true },
     ],
+    serviceTypes: [],
 };
 
 // Sample Branches
@@ -380,7 +381,8 @@ export default function SettingsPage() {
                     });
                     alert(`✅ ${category.name} saved successfully!`);
                 } else {
-                    alert(`❌ Failed to save ${category.name}`);
+                    const errData = await res.json().catch(() => ({}));
+                    alert(`❌ Failed to save ${category.name}: ${errData.error || res.statusText}`);
                 }
             } catch (error) {
                 console.error(`Error saving ${masterId}:`, error);
