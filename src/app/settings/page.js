@@ -350,16 +350,19 @@ export default function SettingsPage() {
 
     // Master Data handlers
     const handleSaveItem = async (masterId, item) => {
-        // For staffRoles and suppliers, use API
-        if (masterId === 'staffRoles' || masterId === 'suppliers') {
+        const category = masterCategories.find(c => c.id === masterId);
+
+        // Use API if apiEndpoint is defined
+        if (category?.apiEndpoint) {
             try {
-                const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
+                const endpoint = category.apiEndpoint;
                 const body = item.id ? { ...item, _id: item.id } : item;
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                 });
+
                 if (res.ok) {
                     const savedItem = await res.json();
                     if (!savedItem || savedItem.error) throw new Error(savedItem?.error || 'Failed to parse saved item');
@@ -371,14 +374,13 @@ export default function SettingsPage() {
                         if (item.id && typeof item.id === 'string' && item.id.length === 24) {
                             return { ...prev, [masterId]: existing.map(i => i.id === item.id ? newItem : i) };
                         } else {
-                            // Also handle the case where it was sample data (numeric id) that we just saved to DB
                             const filtered = item.id ? existing.filter(i => i.id !== item.id) : existing;
                             return { ...prev, [masterId]: [...filtered, newItem] };
                         }
                     });
-                    alert(`✅ ${masterId === 'staffRoles' ? 'Role' : 'Supplier'} saved successfully!`);
+                    alert(`✅ ${category.name} saved successfully!`);
                 } else {
-                    alert(`❌ Failed to save ${masterId === 'staffRoles' ? 'role' : 'supplier'}`);
+                    alert(`❌ Failed to save ${category.name}`);
                 }
             } catch (error) {
                 console.error(`Error saving ${masterId}:`, error);
@@ -399,17 +401,16 @@ export default function SettingsPage() {
     };
 
     const handleDeleteItem = async (masterId, itemId) => {
-        // For staffRoles and suppliers, use API
-        if (masterId === 'staffRoles' || masterId === 'suppliers') {
+        const category = masterCategories.find(c => c.id === masterId);
+
+        if (category?.apiEndpoint) {
             try {
-                const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
+                const endpoint = category.apiEndpoint;
                 const isValidObjectId = typeof itemId === 'string' && itemId.length === 24;
 
                 if (isValidObjectId) {
-                    const res = await fetch(endpoint, {
+                    const res = await fetch(`${endpoint}?id=${itemId}`, {
                         method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: itemId }),
                     });
                     if (!res.ok) throw new Error('Delete request failed');
                 }
@@ -430,12 +431,13 @@ export default function SettingsPage() {
     };
 
     const handleRestoreItem = async (masterId, itemId) => {
-        // For staffRoles and suppliers, use API to restore
-        if (masterId === 'staffRoles' || masterId === 'suppliers') {
+        const category = masterCategories.find(c => c.id === masterId);
+
+        if (category?.apiEndpoint) {
             try {
                 const item = (masterData[masterId] || []).find(i => i.id === itemId);
                 if (item) {
-                    const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
+                    const endpoint = category.apiEndpoint;
                     const isValidObjectId = typeof itemId === 'string' && itemId.length === 24;
 
                     if (isValidObjectId) {
