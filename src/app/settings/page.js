@@ -354,12 +354,18 @@ export default function SettingsPage() {
                 });
                 if (res.ok) {
                     const savedItem = await res.json();
+                    if (!savedItem || savedItem.error) throw new Error(savedItem?.error || 'Failed to parse saved item');
+
                     setMasterData(prev => {
                         const existing = prev[masterId] || [];
-                        if (item.id) {
-                            return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...savedItem, id: savedItem._id, isActive: true } : i) };
+                        const newItem = { ...savedItem, id: savedItem._id, isActive: true };
+
+                        if (item.id && typeof item.id === 'string' && item.id.length === 24) {
+                            return { ...prev, [masterId]: existing.map(i => i.id === item.id ? newItem : i) };
                         } else {
-                            return { ...prev, [masterId]: [...existing, { ...savedItem, id: savedItem._id, isActive: true }] };
+                            // Also handle the case where it was sample data (numeric id) that we just saved to DB
+                            const filtered = item.id ? existing.filter(i => i.id !== item.id) : existing;
+                            return { ...prev, [masterId]: [...filtered, newItem] };
                         }
                     });
                     alert(`✅ ${masterId === 'staffRoles' ? 'Role' : 'Supplier'} saved successfully!`);
@@ -389,17 +395,21 @@ export default function SettingsPage() {
         if (masterId === 'staffRoles' || masterId === 'suppliers') {
             try {
                 const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
-                const res = await fetch(endpoint, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: itemId }),
-                });
-                if (res.ok) {
-                    setMasterData(prev => ({
-                        ...prev,
-                        [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: false } : i),
-                    }));
+                const isValidObjectId = typeof itemId === 'string' && itemId.length === 24;
+
+                if (isValidObjectId) {
+                    const res = await fetch(endpoint, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: itemId }),
+                    });
+                    if (!res.ok) throw new Error('Delete request failed');
                 }
+
+                setMasterData(prev => ({
+                    ...prev,
+                    [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: false } : i),
+                }));
             } catch (error) {
                 console.error(`Error deleting ${masterId}:`, error);
             }
@@ -418,17 +428,21 @@ export default function SettingsPage() {
                 const item = (masterData[masterId] || []).find(i => i.id === itemId);
                 if (item) {
                     const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...item, _id: item.id, isActive: true }),
-                    });
-                    if (res.ok) {
-                        setMasterData(prev => ({
-                            ...prev,
-                            [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: true } : i),
-                        }));
+                    const isValidObjectId = typeof itemId === 'string' && itemId.length === 24;
+
+                    if (isValidObjectId) {
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...item, _id: item.id, isActive: true }),
+                        });
+                        if (!res.ok) throw new Error('Restore request failed');
                     }
+
+                    setMasterData(prev => ({
+                        ...prev,
+                        [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: true } : i),
+                    }));
                 }
             } catch (error) {
                 console.error(`Error restoring ${masterId}:`, error);
