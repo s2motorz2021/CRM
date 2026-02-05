@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 // Sample categories and brands
 const categories = ['Engine Parts', 'Body Parts', 'Electrical', 'Lubricants', 'Filters', 'Brake System', 'Chain & Sprocket', 'Tyre & Tubes'];
 const brands = ['Honda', 'TVS', 'Bajaj', 'Hero', 'Royal Enfield', 'Generic'];
-const suppliers = ['Auto Parts India', 'Spare World', 'Genuine Spares Pvt Ltd', 'Motor Parts Co.'];
+
 
 // Sample Data (Moved to Backend)
 const sampleParts = [];
@@ -23,6 +23,8 @@ export default function InventoryPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterBrand, setFilterBrand] = useState('all');
+    const [suppliers, setSuppliers] = useState([]);
+
 
     const [showPartModal, setShowPartModal] = useState(false);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -55,6 +57,13 @@ export default function InventoryPage() {
             if (reqsRes.ok) setRequests(await reqsRes.json());
             if (poRes.ok) setPurchases(await poRes.json());
             if (histRes.ok) setHistory(await histRes.json());
+
+            // Fetch Suppliers
+            const suppliersRes = await fetch('/api/suppliers');
+            if (suppliersRes.ok) {
+                const suppliersData = await suppliersRes.json();
+                setSuppliers(suppliersData.map(s => s.name));
+            }
         } catch (error) {
             console.error('Error fetching inventory data:', error);
         } finally {

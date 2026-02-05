@@ -78,11 +78,15 @@ export default function HRPage() {
     const handleDocumentUpload = (e, type) => {
         const file = e.target.files[0];
         if (file && (file.type === 'application/pdf' || file.type.startsWith('image/'))) {
-            if (type === 'aadhaar') {
-                setStaffForm(prev => ({ ...prev, aadhaarFile: file, aadhaarFileName: file.name }));
-            } else {
-                setStaffForm(prev => ({ ...prev, panFile: file, panFileName: file.name }));
-            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (type === 'aadhaar') {
+                    setStaffForm(prev => ({ ...prev, aadhaar: reader.result, aadhaarFileName: file.name }));
+                } else {
+                    setStaffForm(prev => ({ ...prev, pan: reader.result, panFileName: file.name }));
+                }
+            };
+            reader.readAsDataURL(file);
         } else {
             alert('Please upload a valid PDF or image file');
         }
@@ -240,10 +244,11 @@ export default function HRPage() {
         if (!staffForm.name || !staffForm.phone) { alert('Please fill required fields'); return; }
 
         try {
-            // For new staff, set a default password (phone number) if not editing
+            // Map photo and docs before sending
+            const { photoPreview, documents, ...rest } = staffForm;
             const body = editingStaff
-                ? { ...staffForm, _id: editingStaff._id }
-                : { ...staffForm, password: staffForm.phone }; // Default password = phone number
+                ? { ...rest, photo: staffForm.photoPreview, _id: editingStaff._id }
+                : { ...rest, photo: staffForm.photoPreview, password: staffForm.phone }; // Default password = phone number
 
             const response = await fetch('/api/staff', {
                 method: 'POST',
@@ -301,7 +306,12 @@ export default function HRPage() {
 
     const handleEditStaff = (staffMember) => {
         setEditingStaff(staffMember);
-        setStaffForm({ ...staffMember });
+        setStaffForm({
+            ...staffMember,
+            photoPreview: staffMember.photo,
+            aadhaarFileName: staffMember.aadhaar ? 'Aadhar_Saved_Document' : '',
+            panFileName: staffMember.pan ? 'PAN_Saved_Document' : ''
+        });
         setShowStaffModal(true);
     };
 
@@ -506,7 +516,13 @@ export default function HRPage() {
                                 <tr key={s._id || s.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                                     <td style={{ padding: '14px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <span style={{ fontSize: '2rem' }}>{s.photo}</span>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: '1.2rem' }}>
+                                                {s.photo && s.photo.startsWith('data:image') ? (
+                                                    <img src={s.photo} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <span>{s.photo || (s.gender === 'Female' ? '👩' : '👨')}</span>
+                                                )}
+                                            </div>
                                             <div>
                                                 <div style={{ fontWeight: 600 }}>{s.name}</div>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Since {s.doj}</div>
@@ -926,25 +942,50 @@ export default function HRPage() {
                                     {/* Aadhaar Upload */}
                                     <div style={{ padding: 'var(--spacing-md)', background: 'white', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-gray-300)' }}>
                                         <label style={labelStyle}>Aadhaar Card (PDF/JPG)</label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--color-gray-100)', borderRadius: '6px', cursor: 'pointer' }}>
-                                            <span>📄</span>
-                                            <span style={{ fontSize: '0.85rem', color: staffForm.aadhaarFileName ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                                                {staffForm.aadhaarFileName || 'Choose file...'}
-                                            </span>
-                                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocumentUpload(e, 'aadhaar')} style={{ display: 'none' }} />
-                                        </label>
-                                        {staffForm.aadhaarFileName && <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#4CAF50' }}>✓ File attached</div>}
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--color-gray-100)', borderRadius: '6px', cursor: 'pointer' }}>
+                                                <span>📄</span>
+                                                <span style={{ fontSize: '0.85rem', color: staffForm.aadhaarFileName ? 'var(--text-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {staffForm.aadhaarFileName || 'Choose file...'}
+                                                </span>
+                                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocumentUpload(e, 'aadhaar')} style={{ display: 'none' }} />
+                                            </label>
+                                            {staffForm.aadhaar && (
+                                                <button
+                                                    onClick={() => {
+                                                        const win = window.open();
+                                                        win.document.write(`<iframe src="${staffForm.aadhaar}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                                    }}
+                                                    style={{ padding: '10px', background: 'var(--color-gray-800)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                    title="View Document"
+                                                >👁️</button>
+                                            )}
+                                        </div>
+                                        {staffForm.aadhaar && <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#4CAF50' }}>✓ Document saved</div>}
                                     </div>
                                     {/* PAN Upload */}
                                     <div style={{ padding: 'var(--spacing-md)', background: 'white', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-gray-300)' }}>
                                         <label style={labelStyle}>PAN Card (PDF/JPG)</label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--color-gray-100)', borderRadius: '6px', cursor: 'pointer' }}>
-                                            <span>📄</span>
-                                            <span style={{ fontSize: '0.85rem', color: staffForm.panFileName ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                                                {staffForm.panFileName || 'Choose file...'}
-                                            </span>
-                                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocumentUpload(e, 'pan')} style={{ display: 'none' }} />
-                                        </label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--color-gray-100)', borderRadius: '6px', cursor: 'pointer' }}>
+                                                <span>📄</span>
+                                                <span style={{ fontSize: '0.85rem', color: staffForm.panFileName ? 'var(--text-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {staffForm.panFileName || 'Choose file...'}
+                                                </span>
+                                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocumentUpload(e, 'pan')} style={{ display: 'none' }} />
+                                            </label>
+                                            {staffForm.pan && (
+                                                <button
+                                                    onClick={() => {
+                                                        const win = window.open();
+                                                        win.document.write(`<iframe src="${staffForm.pan}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                                    }}
+                                                    style={{ padding: '10px', background: 'var(--color-gray-800)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                    title="View Document"
+                                                >👁️</button>
+                                            )}
+                                        </div>
+                                        {staffForm.pan && <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#4CAF50' }}>✓ Document saved</div>}
                                     </div>
                                 </div>
                             </div>

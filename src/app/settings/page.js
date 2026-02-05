@@ -93,6 +93,7 @@ const masterCategories = [
         icon: '🏭',
         description: 'Parts suppliers',
         color: '#3F51B5',
+        apiEndpoint: '/api/suppliers',
         fields: [
             { key: 'name', label: 'Supplier Name', type: 'text', required: true },
             { key: 'contact', label: 'Contact Person', type: 'text' },
@@ -272,20 +273,28 @@ export default function SettingsPage() {
     const [selectedMaster, setSelectedMaster] = useState(null);
     const [masterData, setMasterData] = useState(sampleData);
 
-    // Fetch staff roles from API on mount
+    // Fetch staff roles and suppliers from API on mount
     useEffect(() => {
-        const fetchRoles = async () => {
+        const fetchMasterData = async () => {
             try {
-                const res = await fetch('/api/roles');
-                if (res.ok) {
-                    const data = await res.json();
+                // Fetch Roles
+                const rolesRes = await fetch('/api/roles');
+                if (rolesRes.ok) {
+                    const data = await rolesRes.json();
                     setMasterData(prev => ({ ...prev, staffRoles: data.map(r => ({ ...r, id: r._id, isActive: r.isActive ?? true })) }));
                 }
+
+                // Fetch Suppliers
+                const suppliersRes = await fetch('/api/suppliers');
+                if (suppliersRes.ok) {
+                    const data = await suppliersRes.json();
+                    setMasterData(prev => ({ ...prev, suppliers: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
+                }
             } catch (error) {
-                console.error('Error fetching roles:', error);
+                console.error('Error fetching master data:', error);
             }
         };
-        fetchRoles();
+        fetchMasterData();
     }, []);
 
     // Branch state
@@ -333,32 +342,33 @@ export default function SettingsPage() {
 
     // Master Data handlers
     const handleSaveItem = async (masterId, item) => {
-        // For staffRoles, use API
-        if (masterId === 'staffRoles') {
+        // For staffRoles and suppliers, use API
+        if (masterId === 'staffRoles' || masterId === 'suppliers') {
             try {
+                const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
                 const body = item.id ? { ...item, _id: item.id } : item;
-                const res = await fetch('/api/roles', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                 });
                 if (res.ok) {
-                    const savedRole = await res.json();
+                    const savedItem = await res.json();
                     setMasterData(prev => {
                         const existing = prev[masterId] || [];
                         if (item.id) {
-                            return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...savedRole, id: savedRole._id, isActive: true } : i) };
+                            return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...savedItem, id: savedItem._id, isActive: true } : i) };
                         } else {
-                            return { ...prev, [masterId]: [...existing, { ...savedRole, id: savedRole._id, isActive: true }] };
+                            return { ...prev, [masterId]: [...existing, { ...savedItem, id: savedItem._id, isActive: true }] };
                         }
                     });
-                    alert('✅ Role saved successfully!');
+                    alert(`✅ ${masterId === 'staffRoles' ? 'Role' : 'Supplier'} saved successfully!`);
                 } else {
-                    alert('❌ Failed to save role');
+                    alert(`❌ Failed to save ${masterId === 'staffRoles' ? 'role' : 'supplier'}`);
                 }
             } catch (error) {
-                console.error('Error saving role:', error);
-                alert('❌ Error saving role');
+                console.error(`Error saving ${masterId}:`, error);
+                alert(`❌ Error saving ${masterId}`);
             }
         } else {
             // For other master data, use local state
@@ -375,10 +385,11 @@ export default function SettingsPage() {
     };
 
     const handleDeleteItem = async (masterId, itemId) => {
-        // For staffRoles, use API
-        if (masterId === 'staffRoles') {
+        // For staffRoles and suppliers, use API
+        if (masterId === 'staffRoles' || masterId === 'suppliers') {
             try {
-                const res = await fetch('/api/roles', {
+                const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
+                const res = await fetch(endpoint, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: itemId }),
@@ -390,7 +401,7 @@ export default function SettingsPage() {
                     }));
                 }
             } catch (error) {
-                console.error('Error deleting role:', error);
+                console.error(`Error deleting ${masterId}:`, error);
             }
         } else {
             setMasterData(prev => ({
@@ -401,12 +412,13 @@ export default function SettingsPage() {
     };
 
     const handleRestoreItem = async (masterId, itemId) => {
-        // For staffRoles, use API to restore
-        if (masterId === 'staffRoles') {
+        // For staffRoles and suppliers, use API to restore
+        if (masterId === 'staffRoles' || masterId === 'suppliers') {
             try {
                 const item = (masterData[masterId] || []).find(i => i.id === itemId);
                 if (item) {
-                    const res = await fetch('/api/roles', {
+                    const endpoint = masterId === 'staffRoles' ? '/api/roles' : '/api/suppliers';
+                    const res = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ...item, _id: item.id, isActive: true }),
@@ -419,7 +431,7 @@ export default function SettingsPage() {
                     }
                 }
             } catch (error) {
-                console.error('Error restoring role:', error);
+                console.error(`Error restoring ${masterId}:`, error);
             }
         } else {
             setMasterData(prev => ({
