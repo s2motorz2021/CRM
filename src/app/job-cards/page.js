@@ -157,20 +157,26 @@ export default function JobCardsPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [jcRes, custRes, vehRes, techRes, partsRes] = await Promise.all([
+            const [jcRes, custRes, vehRes, staffRes, partsRes, rolesRes] = await Promise.all([
                 fetch('/api/job-cards'),
                 fetch('/api/customers'),
                 fetch('/api/vehicles'),
                 fetch('/api/staff'),
-                fetch('/api/parts')
+                fetch('/api/parts'),
+                fetch('/api/roles')
             ]);
             if (jcRes.ok) setJobCards(await jcRes.json());
             if (custRes.ok) setCustomers(await custRes.json());
             if (vehRes.ok) setVehiclesList(await vehRes.json());
-            if (techRes.ok) {
-                const staff = await techRes.json();
-                setTechniciansList(staff.filter(s => s.role === 'Technician'));
+
+            // Filter staff based on roles with canAssignJobs: true
+            if (staffRes.ok && rolesRes.ok) {
+                const allStaff = await staffRes.json();
+                const allRoles = await rolesRes.json();
+                const assignableRoles = allRoles.filter(r => r.canAssignJobs).map(r => r.name);
+                setTechniciansList(allStaff.filter(s => assignableRoles.includes(s.role)));
             }
+
             if (partsRes.ok) {
                 const parts = await partsRes.json();
                 setSpareItems(parts.map(p => ({
@@ -1326,8 +1332,41 @@ export default function JobCardsPage() {
 
                                                 <div style={{ padding: 'var(--spacing-md)', background: 'rgba(76, 175, 80, 0.1)', borderRadius: 'var(--radius-md)', border: '1px solid #4CAF50' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Subtotal</span><span style={{ fontWeight: 600 }}>₹{calculateEstimate()}</span></div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Advance Received</span><span style={{ color: '#FF9800', fontWeight: 600 }}>- ₹{formData.advanceAmount || 0}</span></div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-gray-200)', paddingTop: '8px', fontSize: '1.1rem', fontWeight: 700, color: '#4CAF50' }}><span>Balance Due</span><span>₹{calculateEstimate() - (formData.advanceAmount || 0)}</span></div>
+
+                                                    <div style={{ marginTop: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💰 Advance Amount (₹)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={formData.advanceAmount}
+                                                                    onChange={(e) => setFormData({ ...formData, advanceAmount: parseFloat(e.target.value) || 0 })}
+                                                                    placeholder="0.00"
+                                                                    disabled={formData.isLocked}
+                                                                    style={{ ...inputStyle, padding: '8px' }}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💳 Payment Mode</label>
+                                                                <select
+                                                                    value={formData.advanceMethod}
+                                                                    onChange={(e) => setFormData({ ...formData, advanceMethod: e.target.value })}
+                                                                    disabled={formData.isLocked}
+                                                                    style={{ ...inputStyle, padding: '8px' }}
+                                                                >
+                                                                    <option value="">Select Mode</option>
+                                                                    <option value="Cash">Cash</option>
+                                                                    <option value="Card">Card</option>
+                                                                    <option value="UPI">UPI</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #4CAF50', paddingTop: '12px', marginTop: '4px', fontSize: '1.2rem', fontWeight: 700, color: '#2E7D32' }}>
+                                                        <span>Balance Due</span>
+                                                        <span>₹{Math.max(0, calculateEstimate() - (formData.advanceAmount || 0))}</span>
+                                                    </div>
                                                 </div>
 
                                                 <div style={{ marginTop: 'var(--spacing-lg)', display: 'flex', gap: '8px' }}>

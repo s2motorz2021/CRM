@@ -10,13 +10,13 @@ const sampleAdvances = [];
 
 
 const branches = ['Main Branch', 'City Center', 'Highway Outlet'];
-const roles = ['Mechanic', 'Senior Mechanic', 'Service Advisor', 'Workshop Manager', 'Helper'];
 
 export default function HRPage() {
     const [activeTab, setActiveTab] = useState('staff');
     const [staff, setStaff] = useState(sampleStaff);
     const [attendance, setAttendance] = useState(sampleAttendance);
     const [advances, setAdvances] = useState(sampleAdvances);
+    const [roles, setRoles] = useState([]); // Roles from API
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedMonth, setSelectedMonth] = useState('2026-01');
     const [showStaffModal, setShowStaffModal] = useState(false);
@@ -33,15 +33,17 @@ export default function HRPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [staffRes, attRes, advRes] = await Promise.all([
+            const [staffRes, attRes, advRes, rolesRes] = await Promise.all([
                 fetch('/api/staff'),
                 fetch(`/api/attendance?date=${selectedDate}`),
-                fetch('/api/advances')
+                fetch('/api/advances'),
+                fetch('/api/roles')
             ]);
 
             if (staffRes.ok) setStaff(await staffRes.json());
             if (attRes.ok) setAttendance(await attRes.json());
             if (advRes.ok) setAdvances(await advRes.json());
+            if (rolesRes.ok) setRoles(await rolesRes.json());
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -55,7 +57,7 @@ export default function HRPage() {
 
     // Staff form
     const [staffForm, setStaffForm] = useState({
-        name: '', gender: 'Male', dob: '', doj: '', experience: '', role: 'Mechanic',
+        name: '', gender: 'Male', dob: '', doj: '', experience: '', role: '',
         branch: 'Main Branch', phone: '', email: '', bankAccount: '', ifsc: '', aadhaar: '', pan: '',
         photoPreview: null, aadhaarFile: null, aadhaarFileName: '', panFile: null, panFileName: '',
         basicSalary: 0, hraPercent: 20, pfEnabled: true, esiEnabled: true
@@ -238,7 +240,10 @@ export default function HRPage() {
         if (!staffForm.name || !staffForm.phone) { alert('Please fill required fields'); return; }
 
         try {
-            const body = editingStaff ? { ...staffForm, _id: editingStaff._id } : staffForm;
+            // For new staff, set a default password (phone number) if not editing
+            const body = editingStaff
+                ? { ...staffForm, _id: editingStaff._id }
+                : { ...staffForm, password: staffForm.phone }; // Default password = phone number
 
             const response = await fetch('/api/staff', {
                 method: 'POST',
@@ -249,7 +254,7 @@ export default function HRPage() {
             if (response.ok) {
                 await fetchData(); // Refresh list
                 resetStaffForm();
-                alert(`✅ Staff ${editingStaff ? 'updated' : 'added'} successfully!`);
+                alert(`✅ Staff ${editingStaff ? 'updated' : 'added'} successfully!${!editingStaff ? ' Default password is the phone number.' : ''}`);
             } else {
                 const errorData = await response.json();
                 alert(`❌ Failed to save staff: ${errorData.details || errorData.error}`);
@@ -904,7 +909,7 @@ export default function HRPage() {
                                 <div><label style={labelStyle}>Gender</label><select value={staffForm.gender} onChange={(e) => setStaffForm({ ...staffForm, gender: e.target.value })} style={inputStyle}><option>Male</option><option>Female</option></select></div>
                                 <div><label style={labelStyle}>Date of Birth</label><input type="date" value={staffForm.dob} onChange={(e) => setStaffForm({ ...staffForm, dob: e.target.value })} style={inputStyle} /></div>
                                 <div><label style={labelStyle}>Date of Joining</label><input type="date" value={staffForm.doj} onChange={(e) => setStaffForm({ ...staffForm, doj: e.target.value })} style={inputStyle} /></div>
-                                <div><label style={labelStyle}>Role</label><select value={staffForm.role} onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })} style={inputStyle}>{roles.map(r => <option key={r}>{r}</option>)}</select></div>
+                                <div><label style={labelStyle}>Role</label><select value={staffForm.role} onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })} style={inputStyle}><option value="">Select Role</option>{roles.map(r => <option key={r._id || r.name} value={r.name}>{r.name}</option>)}</select></div>
                                 <div><label style={labelStyle}>Branch</label><select value={staffForm.branch} onChange={(e) => setStaffForm({ ...staffForm, branch: e.target.value })} style={inputStyle}>{branches.map(b => <option key={b}>{b}</option>)}</select></div>
                                 <div><label style={labelStyle}>Phone *</label><input type="tel" value={staffForm.phone} onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })} style={inputStyle} /></div>
                                 <div><label style={labelStyle}>Email</label><input type="email" value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} style={inputStyle} /></div>

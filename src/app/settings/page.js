@@ -115,6 +115,20 @@ const masterCategories = [
         ],
     },
     {
+        id: 'staffRoles',
+        name: 'Staff Roles',
+        icon: '👷',
+        description: 'Staff roles for HR and Job Cards',
+        color: '#9C27B0',
+        apiEndpoint: '/api/roles',
+        fields: [
+            { key: 'name', label: 'Role Name', type: 'text', required: true },
+            { key: 'description', label: 'Description', type: 'text' },
+            { key: 'department', label: 'Department', type: 'select', options: ['Workshop', 'Admin', 'Finance', 'Sales', 'Other'], required: true },
+            { key: 'canAssignJobs', label: 'Can be assigned to Job Cards', type: 'checkbox' },
+        ],
+    },
+    {
         id: 'inventorySettings',
         name: 'Inventory Settings',
         icon: '⚙️',
@@ -258,6 +272,22 @@ export default function SettingsPage() {
     const [selectedMaster, setSelectedMaster] = useState(null);
     const [masterData, setMasterData] = useState(sampleData);
 
+    // Fetch staff roles from API on mount
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const res = await fetch('/api/roles');
+                if (res.ok) {
+                    const data = await res.json();
+                    setMasterData(prev => ({ ...prev, staffRoles: data.map(r => ({ ...r, id: r._id, isActive: r.isActive ?? true })) }));
+                }
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        };
+        fetchRoles();
+    }, []);
+
     // Branch state
     const [branches, setBranches] = useState(sampleBranches);
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -302,30 +332,101 @@ export default function SettingsPage() {
     const allModules = ['dashboard', 'crm', 'billing', 'inventory', 'hr', 'finance', 'settings', 'reports'];
 
     // Master Data handlers
-    const handleSaveItem = (masterId, item) => {
-        setMasterData(prev => {
-            const existing = prev[masterId] || [];
-            if (item.id) {
-                return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...item, updatedAt: new Date().toISOString() } : i) };
-            } else {
-                const newId = Math.max(0, ...existing.map(i => i.id)) + 1;
-                return { ...prev, [masterId]: [...existing, { ...item, id: newId, isActive: true, createdAt: new Date().toISOString() }] };
+    const handleSaveItem = async (masterId, item) => {
+        // For staffRoles, use API
+        if (masterId === 'staffRoles') {
+            try {
+                const body = item.id ? { ...item, _id: item.id } : item;
+                const res = await fetch('/api/roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (res.ok) {
+                    const savedRole = await res.json();
+                    setMasterData(prev => {
+                        const existing = prev[masterId] || [];
+                        if (item.id) {
+                            return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...savedRole, id: savedRole._id, isActive: true } : i) };
+                        } else {
+                            return { ...prev, [masterId]: [...existing, { ...savedRole, id: savedRole._id, isActive: true }] };
+                        }
+                    });
+                    alert('✅ Role saved successfully!');
+                } else {
+                    alert('❌ Failed to save role');
+                }
+            } catch (error) {
+                console.error('Error saving role:', error);
+                alert('❌ Error saving role');
             }
-        });
+        } else {
+            // For other master data, use local state
+            setMasterData(prev => {
+                const existing = prev[masterId] || [];
+                if (item.id) {
+                    return { ...prev, [masterId]: existing.map(i => i.id === item.id ? { ...item, updatedAt: new Date().toISOString() } : i) };
+                } else {
+                    const newId = Math.max(0, ...existing.map(i => i.id)) + 1;
+                    return { ...prev, [masterId]: [...existing, { ...item, id: newId, isActive: true, createdAt: new Date().toISOString() }] };
+                }
+            });
+        }
     };
 
-    const handleDeleteItem = (masterId, itemId) => {
-        setMasterData(prev => ({
-            ...prev,
-            [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: false, deletedAt: new Date().toISOString() } : i),
-        }));
+    const handleDeleteItem = async (masterId, itemId) => {
+        // For staffRoles, use API
+        if (masterId === 'staffRoles') {
+            try {
+                const res = await fetch('/api/roles', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: itemId }),
+                });
+                if (res.ok) {
+                    setMasterData(prev => ({
+                        ...prev,
+                        [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: false } : i),
+                    }));
+                }
+            } catch (error) {
+                console.error('Error deleting role:', error);
+            }
+        } else {
+            setMasterData(prev => ({
+                ...prev,
+                [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: false, deletedAt: new Date().toISOString() } : i),
+            }));
+        }
     };
 
-    const handleRestoreItem = (masterId, itemId) => {
-        setMasterData(prev => ({
-            ...prev,
-            [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: true, deletedAt: null } : i),
-        }));
+    const handleRestoreItem = async (masterId, itemId) => {
+        // For staffRoles, use API to restore
+        if (masterId === 'staffRoles') {
+            try {
+                const item = (masterData[masterId] || []).find(i => i.id === itemId);
+                if (item) {
+                    const res = await fetch('/api/roles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...item, _id: item.id, isActive: true }),
+                    });
+                    if (res.ok) {
+                        setMasterData(prev => ({
+                            ...prev,
+                            [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: true } : i),
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Error restoring role:', error);
+            }
+        } else {
+            setMasterData(prev => ({
+                ...prev,
+                [masterId]: (prev[masterId] || []).map(i => i.id === itemId ? { ...i, isActive: true, deletedAt: null } : i),
+            }));
+        }
     };
 
     // Branch handlers

@@ -104,6 +104,8 @@ export default function QuickServicePage() {
     const [isDelivered, setIsDelivered] = useState(false);
     const [notificationSent, setNotificationSent] = useState({ whatsapp: false, email: false });
     const [billingFinalized, setBillingFinalized] = useState(false);
+    const [advanceAmount, setAdvanceAmount] = useState(0);
+    const [advanceMethod, setAdvanceMethod] = useState('');
     const [auditLog, setAuditLog] = useState([]);
 
     const fileInputRef = useRef(null);
@@ -197,7 +199,8 @@ export default function QuickServicePage() {
         const subtotal = labourTotal + partsTotal;
         const gst = subtotal * (GST_PERCENT / 100);
         const grandTotal = subtotal + gst - discount;
-        return { labourTotal, partsTotal, subtotal, gst, grandTotal };
+        const balanceDue = grandTotal - advanceAmount;
+        return { labourTotal, partsTotal, subtotal, gst, grandTotal, balanceDue };
     };
 
     const canDeliver = photos.length >= 1 && customerSignature && advisorSignature && (paymentStatus === 'paid' || paymentStatus === 'approved') && billingFinalized;
@@ -232,6 +235,8 @@ export default function QuickServicePage() {
                             customer: customerSignature ? 'signed' : '',
                             advisor: advisorSignature ? 'signed' : ''
                         },
+                        advanceAmount,
+                        advanceMethod,
                         isLocked: true
                     })
                 });
@@ -707,6 +712,40 @@ export default function QuickServicePage() {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Advance Payment Section */}
+                            <div style={{ gridColumn: 'span 2', marginTop: 'var(--spacing-lg)', padding: 'var(--spacing-md)', background: 'rgba(76, 175, 80, 0.05)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                                <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600, color: '#4CAF50' }}>💰 Advance Payment</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Advance Amount (₹)</label>
+                                        <input
+                                            type="number"
+                                            value={advanceAmount}
+                                            onChange={(e) => setAdvanceAmount(parseFloat(e.target.value) || 0)}
+                                            placeholder="0.00"
+                                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Payment Mode</label>
+                                        <select
+                                            value={advanceMethod}
+                                            onChange={(e) => setAdvanceMethod(e.target.value)}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}
+                                        >
+                                            <option value="">Select Mode</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="Card">Card</option>
+                                            <option value="UPI">UPI</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Balance Due</span>
+                                        <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#4CAF50' }}>₹{calculateTotals().balanceDue.toFixed(2)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
