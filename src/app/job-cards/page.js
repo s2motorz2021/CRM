@@ -271,17 +271,19 @@ export default function JobCardsPage() {
         }
         setEditingJobCard(jobCard);
 
-        // Extract IDs from potentially populated objects
-        const customerId = jobCard.customerId?._id || jobCard.customerId;
-        const vehicleId = jobCard.vehicleId?._id || jobCard.vehicleId;
-        const technicianId = jobCard.technicianId?._id || jobCard.technicianId;
+        // Extract IDs and force them to strings for reliable matching
+        const customerId = String(jobCard.customerId?._id || jobCard.customerId || '');
+        const vehicleId = String(jobCard.vehicleId?._id || jobCard.vehicleId || '');
+        const technicianId = String(jobCard.technicianId?._id || jobCard.technicianId || '');
 
-        const customer = customers.find(c => c._id === customerId);
+        // Use lenient matching for customer finding
+        const customer = customers.find(c => String(c._id || c.id) === customerId);
         setSelectedCustomer(customer);
         setActiveTab('details');
+
         setFormData({
-            customerId: customerId || '',
-            vehicleId: vehicleId || '',
+            customerId: customerId,
+            vehicleId: vehicleId,
             serviceType: jobCard.serviceType || '',
             estimatedAmount: jobCard.estimatedAmount || '',
             batteryNo: jobCard.batteryNo || '',
@@ -293,7 +295,7 @@ export default function JobCardsPage() {
             advisorVoiceUrl: jobCard.advisorVoiceUrl || '',
             advanceAmount: jobCard.advanceAmount || '',
             advanceMethod: jobCard.advanceMethod || '',
-            technicianId: technicianId || '',
+            technicianId: technicianId,
             labourItems: jobCard.labourItems || [], spareRequests: jobCard.spareRequests || [],
             estimateSent: jobCard.estimateSent || { print: false, whatsapp: false, email: false },
             isLocked: jobCard.isLocked || false,
@@ -838,7 +840,7 @@ export default function JobCardsPage() {
                         {/* Modal Header */}
                         <div style={{ padding: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>🔧 {editingJobCard ? `Edit ${editingJobCard.jobCardNo}` : 'New Job Card'}</h3>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>🔧 {editingJobCard ? `Edit ${editingJobCard.jobCardNo || editingJobCard.id || 'Job Card'}` : 'New Job Card'}</h3>
                                 {formData.isLocked && <span style={{ background: '#F44336', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>🔒 LOCKED</span>}
                             </div>
                             <button onClick={() => setShowFullModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
@@ -870,21 +872,21 @@ export default function JobCardsPage() {
                                             <div>
                                                 <label style={labelStyle}>Select Customer *</label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <select value={formData.customerId} onChange={(e) => handleCustomerChange(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
+                                                    <select value={String(formData.customerId)} onChange={(e) => handleCustomerChange(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
                                                         <option value="">Select Customer</option>
-                                                        {customers.map(c => <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>)}
+                                                        {customers.map(c => <option key={String(c._id || c.id)} value={String(c._id || c.id)}>{c.name} ({c.phone})</option>)}
                                                     </select>
                                                     <button type="button" onClick={() => setShowAddCustomerModal(true)} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>+ New</button>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label style={labelStyle}>Select Vehicle *</label>
-                                                <select value={formData.vehicleId} onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })} required style={inputStyle}>
+                                                <select value={String(formData.vehicleId)} onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })} required style={inputStyle}>
                                                     <option value="">Select Vehicle</option>
-                                                    {selectedCustomer?.vehicles?.map(v => <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.registrationNo})</option>)}
-                                                    {/* Fallback for when vehicles are in a separate collection - use String() to handle ObjectId */}
+                                                    {selectedCustomer?.vehicles?.map(v => <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>)}
+                                                    {/* Fallback for when vehicles are in a separate collection */}
                                                     {vehiclesList?.filter(v => String(v.customerId?._id || v.customerId) === String(formData.customerId)).map(v => (
-                                                        <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.registrationNo})</option>
+                                                        <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -895,9 +897,9 @@ export default function JobCardsPage() {
                                             <div><label style={labelStyle}>Service Type *</label><select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} required disabled={formData.isLocked} style={inputStyle}><option value="">Select Service</option>{serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
                                             <div>
                                                 <label style={labelStyle}>Allocate Technician</label>
-                                                <select value={formData.technicianId} onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })} style={inputStyle}>
+                                                <select value={String(formData.technicianId)} onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })} style={inputStyle}>
                                                     <option value="">Select Technician</option>
-                                                    {techniciansList.map(t => <option key={t._id} value={t._id}>{t.name} ({t.role})</option>)}
+                                                    {techniciansList.map(t => <option key={String(t._id || t.id)} value={String(t._id || t.id)}>{t.name} ({t.role})</option>)}
                                                 </select>
                                             </div>
                                         </div>
