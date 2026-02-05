@@ -30,7 +30,7 @@ const technicians = [
     { id: 4, name: 'Manoj K', specialty: 'Body Work' },
 ];
 
-const serviceTypes = ['General Service', 'Oil Change', 'Brake Service', 'Tire Replacement', 'Engine Repair', 'Electrical Work', 'Body Work'];
+const serviceTypes = ['General Service', 'Oil Change', 'Brake Service', 'Engine Repair', 'Electrical Work', 'Water Wash', 'Quick Service'];
 
 const labourItems = [
     { id: 1, name: 'General Service Labour', rate: 500 },
@@ -105,10 +105,7 @@ const defaultNextService = {
 };
 
 const defaultDelivery = {
-    type: 'pickup',
-    address: '',
-    challanNo: '',
-    personName: ''
+    status: 'not_ready', readyAt: null, gatePassNo: ''
 };
 
 const defaultSignatures = {
@@ -152,6 +149,8 @@ export default function JobCardsPage() {
     const [customers, setCustomers] = useState([]);
     const [vehiclesList, setVehiclesList] = useState([]);
     const [techniciansList, setTechniciansList] = useState([]);
+    const [partsList, setPartsList] = useState([]);
+    const [serviceTypesList, setServiceTypesList] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [spareItems, setSpareItems] = useState(initialSpareItems);
 
@@ -894,7 +893,17 @@ export default function JobCardsPage() {
 
                                         {/* Service Type & Technician */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <div><label style={labelStyle}>Service Type *</label><select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} required disabled={formData.isLocked} style={inputStyle}><option value="">Select Service</option>{serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+                                            <div>
+                                                <label style={labelStyle}>Service Type *</label>
+                                                <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} required disabled={formData.isLocked} style={inputStyle}>
+                                                    <option value="">Select Service</option>
+                                                    {serviceTypesList.length > 0 ? (
+                                                        serviceTypesList.map((s) => <option key={String(s._id || s.id)} value={s.name}>{s.name}</option>)
+                                                    ) : (
+                                                        serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)
+                                                    )}
+                                                </select>
+                                            </div>
                                             <div>
                                                 <label style={labelStyle}>Allocate Technician</label>
                                                 <select value={String(formData.technicianId)} onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })} style={inputStyle}>

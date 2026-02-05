@@ -81,6 +81,7 @@ const masterCategories = [
         icon: '🔧',
         description: 'Service categories',
         color: '#4CAF50',
+        apiEndpoint: '/api/service-types',
         fields: [
             { key: 'name', label: 'Service Name', type: 'text', required: true },
             { key: 'ratePerHour', label: 'Amount (₹)', type: 'number', required: true },
@@ -289,6 +290,13 @@ export default function SettingsPage() {
                 if (suppliersRes.ok) {
                     const data = await suppliersRes.json();
                     setMasterData(prev => ({ ...prev, suppliers: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
+                }
+
+                // Fetch Service Types
+                const serviceTypesRes = await fetch('/api/service-types');
+                if (serviceTypesRes.ok) {
+                    const data = await serviceTypesRes.json();
+                    setMasterData(prev => ({ ...prev, serviceTypes: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
