@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import SignaturePad from '@/components/SignaturePad';
 
 // Status pipeline with colors
 const statuses = [
@@ -229,6 +230,7 @@ export default function JobCardsPage() {
     const vehiclePhotoInputRef = useRef(null);
     const customerVoiceRef = useRef(null);
     const advisorVoiceRef = useRef(null);
+    const [activeSignaturePad, setActiveSignaturePad] = useState(null); // 'customer' or 'advisor' or null
 
     const [formData, setFormData] = useState({
         customerId: '', vehicleId: '', serviceType: '', estimatedAmount: '', batteryNo: '',
@@ -408,12 +410,12 @@ export default function JobCardsPage() {
         const vehicle = vehiclesList.find(v => v._id === formData.vehicleId);
 
         const newJobCard = {
-            id: editingJobCard?.id || generateJobCardId(),
+            jobCardNo: editingJobCard?.jobCardNo || generateJobCardId(),
             type: 'service',
-            customerId: parseInt(formData.customerId),
+            customerId: formData.customerId,
             customerName: customer?.name || '',
             phone: customer?.phone || '',
-            vehicleId: parseInt(formData.vehicleId),
+            vehicleId: formData.vehicleId,
             vehicleInfo: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.registrationNo})` : '',
             batteryNo: formData.batteryNo,
             serviceType: formData.serviceType,
@@ -427,7 +429,7 @@ export default function JobCardsPage() {
             advisorVoiceUrl: formData.advisorVoiceUrl,
             advanceAmount: parseFloat(formData.advanceAmount) || 0,
             advanceMethod: formData.advanceMethod,
-            technicianId: parseInt(formData.technicianId) || null,
+            technicianId: formData.technicianId || null,
             technicianName: tech?.name || '',
             labourItems: formData.labourItems,
             spareRequests: formData.spareRequests,
@@ -1383,16 +1385,34 @@ export default function JobCardsPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                                                 <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
                                                     <label style={labelStyle}>✍️ Customer Digital Signature</label>
-                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => alert('Opening Signature Pad...')}>
-                                                        {formData.signatures.customer ? <img src={formData.signatures.customer} style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Customer)</span>}
+                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('customer')}>
+                                                        {formData.signatures.customer ? <img src={formData.signatures.customer} alt="Customer" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Customer)</span>}
                                                     </div>
                                                 </div>
                                                 <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
                                                     <label style={labelStyle}>✍️ Advisor/Technician Signature</label>
-                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => alert('Opening Signature Pad...')}>
-                                                        {formData.signatures.advisor ? <img src={formData.signatures.advisor} style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Advisor)</span>}
+                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('advisor')}>
+                                                        {formData.signatures.advisor ? <img src={formData.signatures.advisor} alt="Advisor" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Advisor)</span>}
                                                     </div>
                                                 </div>
+
+                                                {/* Signature Pad Modal */}
+                                                {activeSignaturePad && (
+                                                    <SignaturePad
+                                                        title={activeSignaturePad === 'customer' ? 'Customer Signature' : 'Advisor Signature'}
+                                                        onSave={(data) => {
+                                                            setFormData({
+                                                                ...formData,
+                                                                signatures: {
+                                                                    ...formData.signatures,
+                                                                    [activeSignaturePad]: data
+                                                                }
+                                                            });
+                                                            setActiveSignaturePad(null);
+                                                        }}
+                                                        onCancel={() => setActiveSignaturePad(null)}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     </div>

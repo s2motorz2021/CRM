@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import SignaturePad from '@/components/SignaturePad';
 
 // Sample data
 const vehicleBrands = ['Honda', 'TVS', 'Bajaj', 'Hero', 'Royal Enfield', 'Suzuki', 'Yamaha', 'KTM'];
@@ -51,17 +52,28 @@ export default function QuickServicePage() {
                 fetch('/api/staff'),
                 fetch('/api/parts')
             ]);
-            setCustomers(await custRes.json());
-            setVehicles(await vehRes.json());
-            setStaff(await staffRes.json());
-            const parts = await partsRes.json();
-            setSpareItems(parts.map(p => ({
-                id: p._id,
-                name: p.name,
-                rate: p.salePrice,
-                stock: p.stock,
-                partNumber: p.partNumber
-            })));
+
+            const customersData = await custRes.json();
+            const vehiclesData = await vehRes.json();
+            const staffData = await staffRes.json();
+            const partsData = await partsRes.json();
+
+            if (Array.isArray(customersData)) setCustomers(customersData);
+            if (Array.isArray(vehiclesData)) setVehicles(vehiclesData);
+            if (Array.isArray(staffData)) setStaff(staffData);
+
+            if (Array.isArray(partsData)) {
+                setSpareItems(partsData.map(p => ({
+                    id: p._id,
+                    name: p.name,
+                    rate: p.salePrice,
+                    stock: p.stock,
+                    partNumber: p.partNumber
+                })));
+            } else {
+                console.warn('Parts data is not an array:', partsData);
+                setSpareItems([]);
+            }
         } catch (error) {
             console.error('Fetch error:', error);
         }
@@ -97,8 +109,9 @@ export default function QuickServicePage() {
 
     // Step 4 data
     const [photos, setPhotos] = useState([]);
-    const [customerSignature, setCustomerSignature] = useState(false);
-    const [advisorSignature, setAdvisorSignature] = useState(false);
+    const [customerSignature, setCustomerSignature] = useState(null);
+    const [advisorSignature, setAdvisorSignature] = useState(null);
+    const [activeSignaturePad, setActiveSignaturePad] = useState(null); // 'customer' or 'advisor' or null
     const [discount, setDiscount] = useState(0);
     const [paymentStatus, setPaymentStatus] = useState('pending');
     const [isDelivered, setIsDelivered] = useState(false);
@@ -120,9 +133,22 @@ export default function QuickServicePage() {
 
     const handleCustomerSearch = (term) => {
         setCustomerData({ ...customerData, searchTerm: term });
+
+        // If user is intentionally adding a new customer, don't auto-populate existing ones
+        // unless the search term is empty (reset)
+        if (customerData.isNewCustomer && term.length > 0) return;
+
         const found = customers.find(c => c.phone.includes(term) || c.name.toLowerCase().includes(term.toLowerCase()));
-        if (found) {
-            setCustomerData({ ...customerData, _id: found._id, searchTerm: term, isNewCustomer: false, name: found.name, phone: found.phone, address: found.address });
+        if (found && term.length > 2) { // Only auto-populate if term is significant
+            setCustomerData({
+                ...customerData,
+                _id: found._id,
+                searchTerm: term,
+                isNewCustomer: false,
+                name: found.name,
+                phone: found.phone,
+                address: found.address
+            });
             // Auto find vehicle
             const activeVehicles = vehicles.filter(v => v.customerId === found._id || v.customerId?._id === found._id);
             if (activeVehicles.length > 0) {
@@ -132,9 +158,15 @@ export default function QuickServicePage() {
                     registrationNo: activeVehicles[0].registrationNo,
                     brand: activeVehicles[0].brand,
                     model: activeVehicles[0].model,
-                    color: activeVehicles[0].color
+                    color: activeVehicles[0].color,
+                    batteryNo: activeVehicles[0].batteryNo || '',
+                    odometer: activeVehicles[0].odometer || ''
                 });
             }
+        } else if (!customerData.isNewCustomer) {
+            // Clear fields if no match found and not in "New Customer" mode
+            setCustomerData(prev => ({ ...prev, _id: undefined, name: '', phone: term, address: '' }));
+            setVehicleData({ registrationNo: '', brand: '', model: '', color: '', batteryNo: '', odometer: '' });
         }
     };
 
@@ -232,8 +264,8 @@ export default function QuickServicePage() {
                             status: 'approved'
                         })),
                         signatures: {
-                            customer: customerSignature ? 'signed' : '',
-                            advisor: advisorSignature ? 'signed' : ''
+                            customer: customerSignature || '',
+                            advisor: advisorSignature || ''
                         },
                         advanceAmount,
                         advanceMethod,
@@ -406,7 +438,30 @@ export default function QuickServicePage() {
                                     placeholder="Enter mobile number or name..."
                                     style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}
                                 />
-                                <button onClick={() => setCustomerData({ ...customerData, isNewCustomer: true, name: '', phone: customerData.searchTerm, address: '' })} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>+ New Customer</button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCustomerData({
+                                            ...customerData,
+                                            _id: undefined,
+                                            isNewCustomer: true,
+                                            name: '',
+                                            phone: customerData.searchTerm,
+                                            address: ''
+                                        });
+                                        setVehicleData({
+                                            registrationNo: '',
+                                            brand: '',
+                                            model: '',
+                                            color: '',
+                                            batteryNo: '',
+                                            odometer: ''
+                                        });
+                                    }}
+                                    style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+                                >
+                                    + New Customer
+                                </button>
                             </div>
                         </div>
 
@@ -790,23 +845,52 @@ export default function QuickServicePage() {
                                 <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                                     <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '0.95rem', fontWeight: 600 }}>✍️ Digital Signatures</h4>
                                     <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-                                        <button onClick={() => setCustomerSignature(!customerSignature)} style={{
-                                            flex: 1, padding: '16px', border: '2px dashed', borderRadius: '8px', cursor: 'pointer',
-                                            borderColor: customerSignature ? '#4CAF50' : 'var(--color-gray-300)',
-                                            background: customerSignature ? 'rgba(76, 175, 80, 0.1)' : 'white',
-                                            color: customerSignature ? '#4CAF50' : 'var(--text-muted)',
-                                        }}>
-                                            {customerSignature ? '✓ Customer Signed' : '👤 Customer Signature'}
-                                        </button>
-                                        <button onClick={() => setAdvisorSignature(!advisorSignature)} style={{
-                                            flex: 1, padding: '16px', border: '2px dashed', borderRadius: '8px', cursor: 'pointer',
-                                            borderColor: advisorSignature ? '#4CAF50' : 'var(--color-gray-300)',
-                                            background: advisorSignature ? 'rgba(76, 175, 80, 0.1)' : 'white',
-                                            color: advisorSignature ? '#4CAF50' : 'var(--text-muted)',
-                                        }}>
-                                            {advisorSignature ? '✓ Advisor Signed' : '👨‍💼 Advisor Signature'}
-                                        </button>
+                                        <div
+                                            onClick={() => !isDelivered && setActiveSignaturePad('customer')}
+                                            style={{
+                                                flex: 1, height: '100px', border: '2px dashed', borderRadius: '8px', cursor: isDelivered ? 'not-allowed' : 'pointer',
+                                                borderColor: customerSignature ? '#4CAF50' : 'var(--color-gray-300)',
+                                                background: customerSignature ? 'rgba(76, 175, 80, 0.05)' : 'white',
+                                                color: customerSignature ? '#4CAF50' : 'var(--text-muted)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                                            }}
+                                        >
+                                            {customerSignature ? (
+                                                <img src={customerSignature} alt="Customer" style={{ maxHeight: '90%', maxWidth: '90%' }} />
+                                            ) : (
+                                                <span style={{ fontSize: '0.85rem' }}>👤 Customer Signature</span>
+                                            )}
+                                        </div>
+                                        <div
+                                            onClick={() => !isDelivered && setActiveSignaturePad('advisor')}
+                                            style={{
+                                                flex: 1, height: '100px', border: '2px dashed', borderRadius: '8px', cursor: isDelivered ? 'not-allowed' : 'pointer',
+                                                borderColor: advisorSignature ? '#4CAF50' : 'var(--color-gray-300)',
+                                                background: advisorSignature ? 'rgba(76, 175, 80, 0.05)' : 'white',
+                                                color: advisorSignature ? '#4CAF50' : 'var(--text-muted)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                                            }}
+                                        >
+                                            {advisorSignature ? (
+                                                <img src={advisorSignature} alt="Advisor" style={{ maxHeight: '90%', maxWidth: '90%' }} />
+                                            ) : (
+                                                <span style={{ fontSize: '0.85rem' }}>👨‍💼 Advisor Signature</span>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {/* Signature Pad Modal */}
+                                    {activeSignaturePad && (
+                                        <SignaturePad
+                                            title={activeSignaturePad === 'customer' ? 'Customer Signature' : 'Advisor Signature'}
+                                            onSave={(data) => {
+                                                if (activeSignaturePad === 'customer') setCustomerSignature(data);
+                                                else setAdvisorSignature(data);
+                                                setActiveSignaturePad(null);
+                                            }}
+                                            onCancel={() => setActiveSignaturePad(null)}
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Payment Status */}
