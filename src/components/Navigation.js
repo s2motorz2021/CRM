@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation'; // Added for pathname
 export function Sidebar() {
     const [user, setUser] = useState(null);
     const [mounted, setMounted] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -13,9 +15,16 @@ export function Sidebar() {
         } catch (e) {
             console.error('Failed to parse user session in sidebar', e);
         }
+
+        // Check if mobile
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
     const userRole = user?.role || 'Guest';
+    const pathname = usePathname();
 
     const menuItems = [
         { name: 'Dashboard', icon: '📊', path: '/', roles: ['Manager', 'Admin', 'Advisor', 'Technician', 'Accountant', 'Spare Parts Manager'] },
@@ -33,49 +42,96 @@ export function Sidebar() {
         { name: 'Settings', icon: '⚙️', path: '/settings', roles: ['Manager', 'Admin'] },
     ];
 
-    const filteredItems = menuItems.filter(item => item.roles.includes(userRole));
-    const pathname = usePathname(); // Added for active state
-
     if (!mounted) return null;
 
+    const handleNavClick = () => {
+        if (isMobile) setIsMobileMenuOpen(false);
+    };
+
     return (
-        <aside className="sidebar" style={{
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            width: 'var(--sidebar-width)',
-            height: '100vh',
-            background: '#1A1A2E',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 100,
-        }}>
-            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="/logo.png" alt="S2 Motorz" style={{ width: '150px' }} />
-            </div>
-            <nav style={{ flex: 1, overflowY: 'auto' }}>
-                <ul style={{ listStyle: 'none' }}>
-                    {menuItems.filter(item => item.roles.includes(userRole)).map((item, index) => (
-                        <li key={index} style={{ marginBottom: '8px' }}>
-                            <a href={item.path} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                padding: '10px',
-                                color: pathname === item.path ? '#00B8D4' : 'white',
-                                textDecoration: 'none',
-                                background: pathname === item.path ? 'rgba(0,184,212,0.1)' : 'transparent',
-                                borderRadius: '8px'
-                            }}>
-                                <span>{item.icon}</span>
-                                <span>{item.name}</span>
-                            </a>
-                        </li>
-                    ))}
-                </ul>
-            </nav>
-        </aside>
+        <>
+            {/* Mobile Hamburger Button */}
+            {isMobile && (
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    style={{
+                        position: 'fixed',
+                        top: '12px',
+                        left: '12px',
+                        zIndex: 200,
+                        background: '#1A1A2E',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                    }}
+                >
+                    <span style={{ width: '20px', height: '2px', background: 'white', display: 'block' }} />
+                    <span style={{ width: '20px', height: '2px', background: 'white', display: 'block' }} />
+                    <span style={{ width: '20px', height: '2px', background: 'white', display: 'block' }} />
+                </button>
+            )}
+
+            {/* Mobile Overlay Backdrop */}
+            {isMobile && isMobileMenuOpen && (
+                <div
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        zIndex: 150,
+                    }}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className="sidebar" style={{
+                position: 'fixed',
+                left: isMobile && !isMobileMenuOpen ? '-280px' : 0,
+                top: 0,
+                width: isMobile ? '280px' : 'var(--sidebar-width)',
+                height: '100vh',
+                background: '#1A1A2E',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 160,
+                transition: 'left 0.3s ease',
+                overflowY: 'auto',
+            }}>
+                <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                    <img src="/logo.png" alt="S2 Motorz" style={{ width: '150px' }} />
+                </div>
+                <nav style={{ flex: 1, overflowY: 'auto' }}>
+                    <ul style={{ listStyle: 'none' }}>
+                        {menuItems.filter(item => item.roles.includes(userRole)).map((item, index) => (
+                            <li key={index} style={{ marginBottom: '8px' }}>
+                                <a href={item.path} onClick={handleNavClick} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    padding: '10px',
+                                    color: pathname === item.path ? '#00B8D4' : 'white',
+                                    textDecoration: 'none',
+                                    background: pathname === item.path ? 'rgba(0,184,212,0.1)' : 'transparent',
+                                    borderRadius: '8px'
+                                }}>
+                                    <span>{item.icon}</span>
+                                    <span>{item.name}</span>
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </aside>
+        </>
     );
 }
 
@@ -83,6 +139,7 @@ export function Header() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [user, setUser] = useState(null);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         try {
@@ -91,6 +148,12 @@ export function Header() {
         } catch (e) {
             console.error('Failed to parse user session in header', e);
         }
+
+        // Check if mobile
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
     const userRole = user?.role || 'Guest';
@@ -106,7 +169,7 @@ export function Header() {
         <header style={{
             position: 'fixed',
             top: 0,
-            left: 'var(--sidebar-width)',
+            left: isMobile ? 0 : 'var(--sidebar-width)',
             right: 0,
             height: 'var(--header-height)',
             background: 'rgba(255, 255, 255, 0.95)',
@@ -114,34 +177,37 @@ export function Header() {
             borderBottom: '1px solid var(--color-gray-200)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 var(--spacing-xl)',
+            justifyContent: isMobile ? 'flex-end' : 'space-between',
+            padding: isMobile ? '0 var(--spacing-md)' : '0 var(--spacing-xl)',
+            paddingLeft: isMobile ? '60px' : 'var(--spacing-xl)',
             zIndex: 99,
         }}>
-            {/* Search */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-sm)',
-                background: 'var(--color-gray-100)',
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                borderRadius: 'var(--radius-md)',
-                width: '300px',
-            }}>
-                <span>🔍</span>
-                <input
-                    type="text"
-                    placeholder="Search customers, vehicles..."
-                    style={{
-                        border: 'none',
-                        background: 'transparent',
-                        outline: 'none',
-                        width: '100%',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-primary)',
-                    }}
-                />
-            </div>
+            {/* Search - hide on mobile */}
+            {!isMobile && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-sm)',
+                    background: 'var(--color-gray-100)',
+                    padding: 'var(--spacing-sm) var(--spacing-md)',
+                    borderRadius: 'var(--radius-md)',
+                    width: '300px',
+                }}>
+                    <span>🔍</span>
+                    <input
+                        type="text"
+                        placeholder="Search customers, vehicles..."
+                        style={{
+                            border: 'none',
+                            background: 'transparent',
+                            outline: 'none',
+                            width: '100%',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-primary)',
+                        }}
+                    />
+                </div>
+            )}
 
             {/* Right Section */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)' }}>

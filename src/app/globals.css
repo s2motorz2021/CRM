@@ -288,6 +288,10 @@ a:hover {
     padding: var(--spacing-md);
     padding-top: calc(var(--header-height) + var(--spacing-md));
   }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
 }
 
 /* Print Styles for Invoice and Job Cards */

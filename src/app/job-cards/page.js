@@ -207,6 +207,11 @@ export default function JobCardsPage() {
     const [vehiclePhotos, setVehiclePhotos] = useState([]);
     const [showPhotoViewer, setShowPhotoViewer] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    // Inline Customer/Vehicle Creation
+    const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+    const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
+    const [newVehicleData, setNewVehicleData] = useState({ registrationNo: '', brand: '', model: '', color: '' });
+    const [isSavingCustomer, setIsSavingCustomer] = useState(false);
     // Voice search and dropdown states
     const [customerVoiceSearch, setCustomerVoiceSearch] = useState('');
     const [customerVoiceCategory, setCustomerVoiceCategory] = useState('All');
@@ -468,6 +473,74 @@ export default function JobCardsPage() {
         setFormData({ ...formData, customerId, vehicleId: '' });
     };
 
+    // Save new customer and vehicle from inline modal
+    const handleSaveNewCustomer = async () => {
+        if (!newCustomerData.name || !newCustomerData.phone) {
+            alert('Customer name and phone are required');
+            return;
+        }
+        if (!newVehicleData.registrationNo || !newVehicleData.brand) {
+            alert('Vehicle registration number and brand are required');
+            return;
+        }
+
+        setIsSavingCustomer(true);
+        try {
+            // Save customer
+            const custRes = await fetch('/api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCustomerData)
+            });
+
+            if (!custRes.ok) {
+                const err = await custRes.json();
+                throw new Error(err.error || 'Failed to save customer');
+            }
+
+            const savedCustomer = await custRes.json();
+
+            // Save vehicle with customer ID
+            const vehRes = await fetch('/api/vehicles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...newVehicleData,
+                    customerId: savedCustomer._id
+                })
+            });
+
+            if (!vehRes.ok) {
+                const err = await vehRes.json();
+                throw new Error(err.error || 'Failed to save vehicle');
+            }
+
+            const savedVehicle = await vehRes.json();
+
+            // Refresh data and auto-select the new customer/vehicle
+            await fetchData();
+
+            setFormData({
+                ...formData,
+                customerId: savedCustomer._id,
+                vehicleId: savedVehicle._id
+            });
+            setSelectedCustomer(savedCustomer);
+
+            // Reset and close modal
+            setNewCustomerData({ name: '', phone: '', email: '', address: '' });
+            setNewVehicleData({ registrationNo: '', brand: '', model: '', color: '' });
+            setShowAddCustomerModal(false);
+
+            alert('✅ Customer and vehicle saved successfully!');
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Error: ' + error.message);
+        } finally {
+            setIsSavingCustomer(false);
+        }
+    };
+
     // Voice recording
     const handleVoiceRecord = () => {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -584,12 +657,10 @@ export default function JobCardsPage() {
     return (
         <div>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: 'var(--spacing-xs)' }}>🔧 Job Cards</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Manage service jobs and quick repairs</p>
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)', flexWrap: 'wrap', gap: 'var(--spacing-md)' }}>
+                <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={handleFullJobCard} className="btn btn-primary" style={{ padding: '10px 16px', fontSize: '0.9rem' }}>+ New Job Card</button>
+                    <a href="/quick-service" style={{ padding: '10px 16px', background: 'rgba(76, 175, 80, 0.1)', border: '2px solid #4CAF50', borderRadius: 'var(--radius-md)', color: '#4CAF50', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem' }}>⚡ Quick Service</a>
                     <button onClick={async () => {
                         if (!confirm('This will reset all Job Cards, Vehicles, and Customers. Continue?')) return;
                         const res = await fetch('/api/job-cards/seed');
@@ -597,9 +668,11 @@ export default function JobCardsPage() {
                             await fetchData();
                             alert('✅ Job Card system seeded!');
                         }
-                    }} className="btn" style={{ background: 'var(--color-gray-100)', border: '1px solid var(--color-gray-300)' }}>🌱 Seed Data</button>
-                    <a href="/quick-service" style={{ padding: '10px 20px', background: 'rgba(76, 175, 80, 0.1)', border: '2px solid #4CAF50', borderRadius: 'var(--radius-md)', color: '#4CAF50', fontWeight: 600, textDecoration: 'none' }}>⚡ Quick Service</a>
-                    <button onClick={handleFullJobCard} className="btn btn-primary" style={{ padding: '10px 20px' }}>+ New Job Card</button>
+                    }} className="btn" style={{ background: 'var(--color-gray-100)', border: '1px solid var(--color-gray-300)', fontSize: '0.9rem' }}>🌱 Seed</button>
+                </div>
+                <div className="hide-on-mobile" style={{ textAlign: 'right' }}>
+                    <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 'var(--spacing-xs)' }}>🔧 Job Cards</h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Manage service jobs</p>
                 </div>
             </div>
 
@@ -774,18 +847,21 @@ export default function JobCardsPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                             <div>
                                                 <label style={labelStyle}>Select Customer *</label>
-                                                <select value={formData.customerId} onChange={(e) => handleCustomerChange(e.target.value)} required style={inputStyle}>
-                                                    <option value="">Select Customer</option>
-                                                    {customers.map(c => <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>)}
-                                                </select>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <select value={formData.customerId} onChange={(e) => handleCustomerChange(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
+                                                        <option value="">Select Customer</option>
+                                                        {customers.map(c => <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>)}
+                                                    </select>
+                                                    <button type="button" onClick={() => setShowAddCustomerModal(true)} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>+ New</button>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label style={labelStyle}>Select Vehicle *</label>
                                                 <select value={formData.vehicleId} onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })} required style={inputStyle}>
                                                     <option value="">Select Vehicle</option>
                                                     {selectedCustomer?.vehicles?.map(v => <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.registrationNo})</option>)}
-                                                    {/* Fallback for when vehicles are in a separate collection */}
-                                                    {vehiclesList?.filter(v => v.customerId === formData.customerId).map(v => (
+                                                    {/* Fallback for when vehicles are in a separate collection - use String() to handle ObjectId */}
+                                                    {vehiclesList?.filter(v => String(v.customerId?._id || v.customerId) === String(formData.customerId)).map(v => (
                                                         <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.registrationNo})</option>
                                                     ))}
                                                 </select>
@@ -1731,6 +1807,50 @@ export default function JobCardsPage() {
                     </div>
                 )
             }
+
+            {/* Add Customer Modal */}
+            {showAddCustomerModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>➕ Add New Customer & Vehicle</h3>
+                            <button onClick={() => setShowAddCustomerModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
+                        </div>
+                        <div style={{ padding: '24px' }}>
+                            <h4 style={{ marginBottom: '16px', fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-primary)' }}>👤 Customer Details</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                                <input type="text" placeholder="Name *" value={newCustomerData.name} onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })} style={inputStyle} />
+                                <input type="tel" placeholder="Phone *" value={newCustomerData.phone} onChange={(e) => setNewCustomerData({ ...newCustomerData, phone: e.target.value })} style={inputStyle} />
+                                <input type="email" placeholder="Email" value={newCustomerData.email} onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })} style={inputStyle} />
+                                <input type="text" placeholder="Address" value={newCustomerData.address} onChange={(e) => setNewCustomerData({ ...newCustomerData, address: e.target.value })} style={inputStyle} />
+                            </div>
+
+                            <h4 style={{ marginBottom: '16px', fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-primary)' }}>🏍️ Vehicle Details</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                                <input type="text" placeholder="Registration No *" value={newVehicleData.registrationNo} onChange={(e) => setNewVehicleData({ ...newVehicleData, registrationNo: e.target.value.toUpperCase() })} style={inputStyle} />
+                                <select value={newVehicleData.brand} onChange={(e) => setNewVehicleData({ ...newVehicleData, brand: e.target.value })} style={inputStyle}>
+                                    <option value="">Select Brand *</option>
+                                    <option value="Honda">Honda</option>
+                                    <option value="TVS">TVS</option>
+                                    <option value="Bajaj">Bajaj</option>
+                                    <option value="Hero">Hero</option>
+                                    <option value="Royal Enfield">Royal Enfield</option>
+                                    <option value="Suzuki">Suzuki</option>
+                                    <option value="Yamaha">Yamaha</option>
+                                    <option value="KTM">KTM</option>
+                                </select>
+                                <input type="text" placeholder="Model" value={newVehicleData.model} onChange={(e) => setNewVehicleData({ ...newVehicleData, model: e.target.value })} style={inputStyle} />
+                                <input type="text" placeholder="Color" value={newVehicleData.color} onChange={(e) => setNewVehicleData({ ...newVehicleData, color: e.target.value })} style={inputStyle} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button type="button" onClick={() => setShowAddCustomerModal(false)} style={{ flex: 1, padding: '12px', border: '1px solid var(--color-gray-200)', borderRadius: '8px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                <button type="button" onClick={handleSaveNewCustomer} disabled={isSavingCustomer} style={{ flex: 1, padding: '12px', border: 'none', borderRadius: '8px', background: 'var(--color-primary)', color: 'white', cursor: isSavingCustomer ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: isSavingCustomer ? 0.7 : 1 }}>{isSavingCustomer ? 'Saving...' : '✅ Save & Select'}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

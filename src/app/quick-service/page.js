@@ -265,6 +265,82 @@ export default function QuickServicePage() {
 
     const isStep1Valid = customerData.name && customerData.phone && vehicleData.registrationNo && vehicleData.brand;
 
+    // Save new customer and vehicle to backend
+    const saveCustomerAndVehicle = async () => {
+        try {
+            let customerId = customerData._id;
+            let vehicleId = vehicleData._id;
+
+            // Save new customer if no _id exists
+            if (!customerId && customerData.name && customerData.phone) {
+                const custRes = await fetch('/api/customers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: customerData.name,
+                        phone: customerData.phone,
+                        address: customerData.address || ''
+                    })
+                });
+                if (custRes.ok) {
+                    const savedCustomer = await custRes.json();
+                    customerId = savedCustomer._id;
+                    setCustomerData(prev => ({ ...prev, _id: customerId }));
+                } else {
+                    const err = await custRes.json();
+                    console.error('Customer save error:', err);
+                    alert('Error saving customer: ' + (err.error || 'Unknown error'));
+                    return false;
+                }
+            }
+
+            // Save new vehicle if no _id exists
+            if (!vehicleId && vehicleData.registrationNo && customerId) {
+                const vehRes = await fetch('/api/vehicles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        registrationNo: vehicleData.registrationNo,
+                        brand: vehicleData.brand,
+                        model: vehicleData.model || '',
+                        color: vehicleData.color || '',
+                        customerId: customerId
+                    })
+                });
+                if (vehRes.ok) {
+                    const savedVehicle = await vehRes.json();
+                    vehicleId = savedVehicle._id;
+                    setVehicleData(prev => ({ ...prev, _id: vehicleId }));
+                } else {
+                    const err = await vehRes.json();
+                    console.error('Vehicle save error:', err);
+                    alert('Error saving vehicle: ' + (err.error || 'Unknown error'));
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Connection error while saving customer/vehicle');
+            return false;
+        }
+    };
+
+    // Handle step navigation with data save on Step 1 to Step 2 transition
+    const handleNextStep = async () => {
+        if (currentStep === 1) {
+            setIsLoading(true);
+            const success = await saveCustomerAndVehicle();
+            setIsLoading(false);
+            if (success) {
+                setCurrentStep(2);
+            }
+        } else {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
     return (
         <div>
             {/* Header */}
@@ -792,12 +868,12 @@ export default function QuickServicePage() {
 
                 {currentStep < 4 ? (
                     <button
-                        onClick={() => setCurrentStep(currentStep + 1)}
-                        disabled={currentStep === 1 && !isStep1Valid}
+                        onClick={handleNextStep}
+                        disabled={(currentStep === 1 && !isStep1Valid) || isLoading}
                         className="btn btn-primary"
-                        style={{ padding: '12px 32px', opacity: currentStep === 1 && !isStep1Valid ? 0.5 : 1 }}
+                        style={{ padding: '12px 32px', opacity: (currentStep === 1 && !isStep1Valid) || isLoading ? 0.5 : 1 }}
                     >
-                        Next →
+                        {isLoading ? 'Saving...' : 'Next →'}
                     </button>
                 ) : (
                     <button
