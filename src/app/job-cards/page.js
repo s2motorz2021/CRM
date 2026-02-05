@@ -270,16 +270,30 @@ export default function JobCardsPage() {
             return;
         }
         setEditingJobCard(jobCard);
-        const customer = customers.find(c => c._id === jobCard.customerId?._id || c._id === jobCard.customerId);
+
+        // Extract IDs from potentially populated objects
+        const customerId = jobCard.customerId?._id || jobCard.customerId;
+        const vehicleId = jobCard.vehicleId?._id || jobCard.vehicleId;
+        const technicianId = jobCard.technicianId?._id || jobCard.technicianId;
+
+        const customer = customers.find(c => c._id === customerId);
         setSelectedCustomer(customer);
         setActiveTab('details');
         setFormData({
-            customerId: jobCard.customerId, vehicleId: jobCard.vehicleId, serviceType: jobCard.serviceType,
-            estimatedAmount: jobCard.estimatedAmount, batteryNo: jobCard.batteryNo || '',
-            odometer: jobCard.odometer || '', fuelLevel: jobCard.fuelLevel || 50, oilLevel: jobCard.oilLevel || 'Normal',
-            customerVoice: jobCard.customerVoice || '', advisorVoice: jobCard.advisorVoice || null,
-            advisorVoiceUrl: jobCard.advisorVoiceUrl || '', advanceAmount: jobCard.advanceAmount || '',
-            advanceMethod: jobCard.advanceMethod || '', technicianId: jobCard.technicianId || '',
+            customerId: customerId || '',
+            vehicleId: vehicleId || '',
+            serviceType: jobCard.serviceType || '',
+            estimatedAmount: jobCard.estimatedAmount || '',
+            batteryNo: jobCard.batteryNo || '',
+            odometer: jobCard.odometer || '',
+            fuelLevel: jobCard.fuelLevel || 50,
+            oilLevel: jobCard.oilLevel || 'Normal',
+            customerVoice: jobCard.customerVoice || '',
+            advisorVoice: jobCard.advisorVoice || null,
+            advisorVoiceUrl: jobCard.advisorVoiceUrl || '',
+            advanceAmount: jobCard.advanceAmount || '',
+            advanceMethod: jobCard.advanceMethod || '',
+            technicianId: technicianId || '',
             labourItems: jobCard.labourItems || [], spareRequests: jobCard.spareRequests || [],
             estimateSent: jobCard.estimateSent || { print: false, whatsapp: false, email: false },
             isLocked: jobCard.isLocked || false,
@@ -824,7 +838,7 @@ export default function JobCardsPage() {
                         {/* Modal Header */}
                         <div style={{ padding: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>🔧 {editingJobCard ? `Edit ${editingJobCard.id}` : 'New Job Card'}</h3>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>🔧 {editingJobCard ? `Edit ${editingJobCard.jobCardNo}` : 'New Job Card'}</h3>
                                 {formData.isLocked && <span style={{ background: '#F44336', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>🔒 LOCKED</span>}
                             </div>
                             <button onClick={() => setShowFullModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
