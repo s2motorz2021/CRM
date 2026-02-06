@@ -240,6 +240,7 @@ export default function JobCardsPage() {
     const customerVoiceRef = useRef(null);
     const advisorVoiceRef = useRef(null);
     const [activeSignaturePad, setActiveSignaturePad] = useState(null); // 'customer' or 'advisor' or null
+    const [spareSearchTerm, setSpareSearchTerm] = useState('');
 
     const [formData, setFormData] = useState({
         customerId: '', vehicleId: '', serviceType: '', estimatedAmount: '', batteryNo: '',
@@ -1558,17 +1559,41 @@ export default function JobCardsPage() {
                                                 <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>🔧 Spare Parts</h4>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                                     <div>
-                                                        <h5 style={{ marginBottom: '10px', fontSize: '0.9rem' }}>Available Inventory</h5>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                            <h5 style={{ margin: 0, fontSize: '0.9rem' }}>Available Inventory</h5>
+                                                            <div style={{ position: 'relative', width: '150px' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Search spares..."
+                                                                    value={spareSearchTerm}
+                                                                    onChange={(e) => setSpareSearchTerm(e.target.value)}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        padding: '4px 8px 4px 24px',
+                                                                        fontSize: '0.75rem',
+                                                                        borderRadius: '4px',
+                                                                        border: '1px solid var(--color-gray-300)',
+                                                                        outline: 'none'
+                                                                    }}
+                                                                />
+                                                                <span style={{ position: 'absolute', left: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>🔍</span>
+                                                            </div>
+                                                        </div>
                                                         <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
-                                                            {spareItems.map(item => (
-                                                                <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
-                                                                    <div style={{ fontSize: '0.85rem' }}>
-                                                                        <div style={{ fontWeight: 500 }}>{item.name}</div>
-                                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate} • Stock: {item.stock}</div>
+                                                            {spareItems
+                                                                .filter(item =>
+                                                                    item.name.toLowerCase().includes(spareSearchTerm.toLowerCase()) ||
+                                                                    (item.partNumber && item.partNumber.toLowerCase().includes(spareSearchTerm.toLowerCase()))
+                                                                )
+                                                                .map(item => (
+                                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
+                                                                        <div style={{ fontSize: '0.85rem' }}>
+                                                                            <div style={{ fontWeight: 500 }}>{item.name}</div>
+                                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate} • Stock: {item.stock}</div>
+                                                                        </div>
+                                                                        <button type="button" onClick={() => handleAddSpare(item)} disabled={formData.isLocked} style={{ padding: '4px 10px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
                                                                     </div>
-                                                                    <button type="button" onClick={() => handleAddSpare(item)} disabled={formData.isLocked} style={{ padding: '4px 10px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
-                                                                </div>
-                                                            ))}
+                                                                ))}
                                                         </div>
                                                     </div>
 
