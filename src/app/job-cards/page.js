@@ -305,11 +305,12 @@ export default function JobCardsPage() {
             advanceAmount: jobCard.advanceAmount || '',
             advanceMethod: jobCard.advanceMethod || '',
             technicianId: technicianId,
-            labourItems: jobCard.labourItems || [], spareRequests: jobCard.spareRequests || [],
+            labourItems: (jobCard.labourItems || []).map(item => ({ ...item, id: item.id || item._id })),
+            spareRequests: (jobCard.spareRequests || []).map(item => ({ ...item, id: item.id || item._id })),
             estimateSent: jobCard.estimateSent || { print: false, whatsapp: false, email: false },
             isLocked: jobCard.isLocked || false,
             inspection: jobCard.inspection || { ...defaultInspection },
-            outsideWork: jobCard.outsideWork || [],
+            outsideWork: (jobCard.outsideWork || []).map(item => ({ ...item, id: item.id || item._id })),
             nextService: jobCard.nextService || { ...defaultNextService },
             delivery: jobCard.delivery || { ...defaultDelivery },
             signatures: jobCard.signatures || { ...defaultSignatures }
@@ -1528,7 +1529,7 @@ export default function JobCardsPage() {
                                             <div style={{ background: 'var(--color-gray-100)', borderRadius: '8px', padding: 'var(--spacing-md)' }}>
                                                 <h5 style={{ margin: '0 0 12px 0' }}>Selected Labour Items</h5>
                                                 {formData.labourItems.map(item => (
-                                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'white', borderRadius: '6px', marginBottom: '8px' }}>
+                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'white', borderRadius: '6px', marginBottom: '8px' }}>
                                                         <span>{item.name}</span>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, labourItems: formData.labourItems.map(l => l.id === item.id ? { ...l, qty: parseInt(e.target.value) || 1 } : l) })} disabled={formData.isLocked} style={{ width: '60px', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-200)', textAlign: 'center' }} />
@@ -1555,7 +1556,7 @@ export default function JobCardsPage() {
                                                         <h5 style={{ marginBottom: '10px', fontSize: '0.9rem' }}>Available Inventory</h5>
                                                         <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
                                                             {spareItems.map(item => (
-                                                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
+                                                                <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
                                                                     <div style={{ fontSize: '0.85rem' }}>
                                                                         <div style={{ fontWeight: 500 }}>{item.name}</div>
                                                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate} • Stock: {item.stock}</div>
@@ -1573,7 +1574,7 @@ export default function JobCardsPage() {
                                                                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '20px' }}>No parts selected</div>
                                                             ) : (
                                                                 formData.spareRequests.map(item => (
-                                                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-100)' }}>
+                                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-100)' }}>
                                                                         <div style={{ fontSize: '0.8rem', flex: 1 }}>
                                                                             <div style={{ fontWeight: 500 }}>{item.name}</div>
                                                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate * item.qty}</div>
@@ -1614,7 +1615,7 @@ export default function JobCardsPage() {
                                                     </div>
 
                                                     {formData.outsideWork.map(work => (
-                                                        <div key={work.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid var(--color-gray-200)', fontSize: '0.85rem', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
+                                                        <div key={work.id || work._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid var(--color-gray-200)', fontSize: '0.85rem', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
                                                             <span>{work.name}</span>
                                                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                                                 <span style={{ fontWeight: 600, marginRight: '10px' }}>₹{work.rate}</span>
