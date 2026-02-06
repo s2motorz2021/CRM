@@ -276,11 +276,6 @@ a:hover {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .main-content {
-    margin-left: var(--sidebar-collapsed);
-  }
-}
 
 @media (max-width: 768px) {
   .main-content {
