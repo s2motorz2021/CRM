@@ -681,6 +681,16 @@ export default function SettingsPage() {
                                         )
                                     };
                                 }
+                                if (selectedMaster.id === 'ramps') {
+                                    return {
+                                        ...selectedMaster,
+                                        fields: selectedMaster.fields.map(f =>
+                                            f.key === 'branch'
+                                                ? { ...f, options: branches.filter(b => b.isActive).map(b => b.name) }
+                                                : f
+                                        )
+                                    };
+                                }
                                 return selectedMaster;
                             })()}
                             data={masterData[selectedMaster.id] || []}
