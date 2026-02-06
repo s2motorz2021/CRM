@@ -25,6 +25,7 @@ const masterCategories = [
         icon: '🏭',
         description: 'Manufacturers',
         color: '#673AB7',
+        apiEndpoint: '/api/vehicle-brands',
         fields: [
             { key: 'name', label: 'Brand Name', type: 'text', required: true },
             { key: 'country', label: 'Country', type: 'text' },
@@ -36,6 +37,7 @@ const masterCategories = [
         icon: '🏍️',
         description: 'Model variants',
         color: '#E91E63',
+        apiEndpoint: '/api/vehicle-models',
         fields: [
             { key: 'name', label: 'Model Name', type: 'text', required: true },
             { key: 'brand', label: 'Brand', type: 'select', options: [], required: true },
@@ -48,6 +50,7 @@ const masterCategories = [
         icon: '🎨',
         description: 'Color variants',
         color: '#FF9800',
+        apiEndpoint: '/api/vehicle-colors',
         fields: [
             { key: 'name', label: 'Color Name', type: 'text', required: true },
             { key: 'code', label: 'Color Code', type: 'text' },
@@ -306,6 +309,36 @@ export default function SettingsPage() {
                 if (categoriesRes.ok) {
                     const data = await categoriesRes.json();
                     setMasterData(prev => ({ ...prev, inventoryCategories: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true })) }));
+                }
+
+                // Fetch Vehicle Brands
+                const brandsRes = await fetch('/api/vehicle-brands');
+                if (brandsRes.ok) {
+                    const data = await brandsRes.json();
+                    setMasterData(prev => ({
+                        ...prev,
+                        vehicleBrands: data.map(b => ({ ...b, id: b._id, isActive: b.isActive ?? true }))
+                    }));
+                }
+
+                // Fetch Vehicle Models
+                const modelsRes = await fetch('/api/vehicle-models');
+                if (modelsRes.ok) {
+                    const data = await modelsRes.json();
+                    setMasterData(prev => ({
+                        ...prev,
+                        vehicleModels: data.map(m => ({ ...m, id: m._id, isActive: m.isActive ?? true }))
+                    }));
+                }
+
+                // Fetch Vehicle Colors
+                const colorsRes = await fetch('/api/vehicle-colors');
+                if (colorsRes.ok) {
+                    const data = await colorsRes.json();
+                    setMasterData(prev => ({
+                        ...prev,
+                        vehicleColors: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true }))
+                    }));
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
@@ -588,7 +621,26 @@ export default function SettingsPage() {
                 selectedMaster ? (
                     <div>
                         <button onClick={() => setSelectedMaster(null)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 500, marginBottom: 'var(--spacing-lg)', padding: 0 }}>← Back to Master Data</button>
-                        <MasterDataTable master={selectedMaster} data={masterData[selectedMaster.id] || []} onSave={(item) => handleSaveItem(selectedMaster.id, item)} onDelete={(itemId) => handleDeleteItem(selectedMaster.id, itemId)} onRestore={(itemId) => handleRestoreItem(selectedMaster.id, itemId)} vehicleBrands={masterData.vehicleBrands || []} />
+                        <MasterDataTable
+                            master={(() => {
+                                if (selectedMaster.id === 'vehicleModels') {
+                                    return {
+                                        ...selectedMaster,
+                                        fields: selectedMaster.fields.map(f =>
+                                            f.key === 'brand'
+                                                ? { ...f, options: (masterData.vehicleBrands || []).filter(b => b.isActive).map(b => b.name) }
+                                                : f
+                                        )
+                                    };
+                                }
+                                return selectedMaster;
+                            })()}
+                            data={masterData[selectedMaster.id] || []}
+                            onSave={(item) => handleSaveItem(selectedMaster.id, item)}
+                            onDelete={(itemId) => handleDeleteItem(selectedMaster.id, itemId)}
+                            onRestore={(itemId) => handleRestoreItem(selectedMaster.id, itemId)}
+                            vehicleBrands={masterData.vehicleBrands || []}
+                        />
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--spacing-lg)' }}>
