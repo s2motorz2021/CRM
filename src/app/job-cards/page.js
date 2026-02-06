@@ -446,7 +446,7 @@ export default function JobCardsPage() {
             batteryNo: formData.batteryNo,
             serviceType: formData.serviceType,
             status: editingJobCard?.status || 'new',
-            estimatedAmount: parseFloat(formData.estimatedAmount) || 0,
+            estimatedAmount: calculateEstimate(), // Use live calculation for saving
             odometer: parseInt(formData.odometer) || 0,
             fuelLevel: formData.fuelLevel,
             oilLevel: formData.oilLevel,
@@ -528,7 +528,7 @@ export default function JobCardsPage() {
             ...formData,
             serviceType: serviceName,
             labourItems: updatedLabour,
-            estimatedAmount: calculateEstimate() // Trigger recalculation
+            estimatedAmount: calculateEstimate(updatedLabour) // Trigger recalculation with updated data
         });
     };
 
@@ -678,10 +678,15 @@ export default function JobCardsPage() {
     };
 
     // Calculate totals
-    const calculateEstimate = () => {
-        const labourTotal = (formData.labourItems || []).reduce((sum, l) => sum + (l.rate * l.qty), 0);
-        const partsTotal = (formData.spareRequests || []).filter(s => s.status === 'approved').reduce((sum, s) => sum + (s.rate * s.qty), 0);
-        const outsideTotal = (formData.outsideWork || []).reduce((sum, w) => sum + w.rate, 0);
+    const calculateEstimate = (customLabour = null, customSpares = null, customOutside = null) => {
+        const labourList = customLabour || formData.labourItems || [];
+        const sparesList = customSpares || formData.spareRequests || [];
+        const outsideList = customOutside || formData.outsideWork || [];
+
+        const labourTotal = labourList.reduce((sum, l) => sum + (l.rate * l.qty), 0);
+        // Estimate phase counts all requested spares regardless of 'approved' status (since it's an estimate)
+        const partsTotal = sparesList.reduce((sum, s) => sum + (s.rate * s.qty), 0);
+        const outsideTotal = outsideList.reduce((sum, w) => sum + (w.rate || 0), 0);
         return labourTotal + partsTotal + outsideTotal;
     };
 
@@ -1426,7 +1431,7 @@ export default function JobCardsPage() {
                                             <div>
                                                 <div style={{ padding: 'var(--spacing-md)', background: 'var(--color-gray-100)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)' }}>
                                                     <label style={labelStyle}>💰 Estimated Amount (₹) *</label>
-                                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>₹{formData.estimatedAmount || calculateEstimate()}</div>
+                                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>₹{calculateEstimate()}</div>
                                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Auto-calculated from Labour + Spares</div>
                                                 </div>
 
