@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation'; // Added for pathname
+import Link from 'next/link';
 
 export function Sidebar() {
     const [user, setUser] = useState(null);
@@ -92,20 +93,24 @@ export function Sidebar() {
             )}
 
             {/* Sidebar */}
-            <aside className="sidebar" style={{
-                position: 'fixed',
-                left: isMobile && !isMobileMenuOpen ? '-280px' : 0,
-                top: 0,
-                width: isMobile ? '280px' : 'var(--sidebar-width)',
-                height: '100vh',
-                background: '#1A1A2E',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                zIndex: 160,
-                transition: 'left 0.3s ease',
-                overflowY: 'auto',
-            }}>
+            <aside
+                className={`sidebar ${isMobile && isMobileMenuOpen ? 'mobile-open' : ''}`}
+                style={{
+                    position: 'fixed',
+                    // Left and Width handled by CSS for mobile, defaults for desktop
+                    top: 0,
+                    // Use CSS variable for desktop width, mobile overrides via media query class
+                    width: isMobile ? '280px' : 'var(--sidebar-width)',
+                    height: '100vh',
+                    background: '#1A1A2E',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 160,
+                    // Transition handled by CSS
+                    overflowY: 'auto',
+                }}
+            >
                 <div style={{ marginBottom: '24px', textAlign: 'center' }}>
                     <img src="/logo.png" alt="S2 Motorz" style={{ width: '150px' }} />
                 </div>
@@ -113,19 +118,23 @@ export function Sidebar() {
                     <ul style={{ listStyle: 'none' }}>
                         {menuItems.filter(item => item.roles.includes(userRole)).map((item, index) => (
                             <li key={index} style={{ marginBottom: '8px' }}>
-                                <a href={item.path} onClick={handleNavClick} style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '10px',
-                                    color: pathname === item.path ? '#00B8D4' : 'white',
-                                    textDecoration: 'none',
-                                    background: pathname === item.path ? 'rgba(0,184,212,0.1)' : 'transparent',
-                                    borderRadius: '8px'
-                                }}>
+                                <Link
+                                    href={item.path}
+                                    onClick={handleNavClick}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '10px',
+                                        color: pathname === item.path ? '#00B8D4' : 'white',
+                                        textDecoration: 'none',
+                                        background: pathname === item.path ? 'rgba(0,184,212,0.1)' : 'transparent',
+                                        borderRadius: '8px'
+                                    }}
+                                >
                                     <span>{item.icon}</span>
                                     <span>{item.name}</span>
-                                </a>
+                                </Link>
                             </li>
                         ))}
                     </ul>
