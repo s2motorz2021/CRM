@@ -1,0 +1,30 @@
+
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/dbConnect';
+import Ramp from '@/models/Ramp';
+
+export async function GET() {
+    await dbConnect();
+    try {
+        const ramps = await Ramp.find({ isActive: true }).sort({ createdAt: -1 });
+        return NextResponse.json(ramps);
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+export async function POST(req) {
+    await dbConnect();
+    try {
+        const body = await req.json();
+        if (body._id) {
+            const updated = await Ramp.findByIdAndUpdate(body._id, body, { new: true });
+            return NextResponse.json(updated);
+        } else {
+            const newRamp = await Ramp.create(body);
+            return NextResponse.json(newRamp);
+        }
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+}

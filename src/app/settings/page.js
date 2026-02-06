@@ -62,6 +62,7 @@ const masterCategories = [
         icon: '📊',
         description: 'Tax rates',
         color: '#2196F3',
+        apiEndpoint: '/api/gst-rates',
         fields: [
             { key: 'rate', label: 'GST Rate (%)', type: 'number', required: true },
             { key: 'description', label: 'Description', type: 'text' },
@@ -114,6 +115,7 @@ const masterCategories = [
         icon: '🅿️',
         description: 'Workshop service bays',
         color: '#FF5722',
+        apiEndpoint: '/api/ramps',
         fields: [
             { key: 'name', label: 'Bay Name/Number', type: 'text', required: true },
             { key: 'bayType', label: 'Bay Type', type: 'select', options: ['Service', 'Water Wash', 'Quick Service'], required: true },
@@ -140,6 +142,7 @@ const masterCategories = [
         icon: '⚙️',
         description: 'Stock alert settings',
         color: '#607D8B',
+        apiEndpoint: '/api/inventory-settings',
         fields: [
             { key: 'name', label: 'Setting Name', type: 'text', required: true },
             { key: 'value', label: 'Value (Days)', type: 'number', required: true },
@@ -152,6 +155,7 @@ const masterCategories = [
         icon: '🗣️',
         description: 'Common customer complaints',
         color: '#9C27B0',
+        apiEndpoint: '/api/customer-voice',
         fields: [
             { key: 'name', label: 'Complaint/Issue', type: 'text', required: true },
             { key: 'category', label: 'Category', type: 'select', options: ['Engine', 'Brakes', 'Electrical', 'Body', 'Suspension', 'Transmission', 'General'], required: true },
@@ -164,6 +168,7 @@ const masterCategories = [
         icon: '👨‍💼',
         description: 'Advisor observations/notes',
         color: '#00BCD4',
+        apiEndpoint: '/api/advisor-voice',
         fields: [
             { key: 'name', label: 'Observation/Note', type: 'text', required: true },
             { key: 'category', label: 'Category', type: 'select', options: ['Inspection', 'Recommendation', 'Safety', 'Maintenance', 'Repair', 'General'], required: true },
@@ -339,6 +344,41 @@ export default function SettingsPage() {
                         ...prev,
                         vehicleColors: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true }))
                     }));
+                }
+
+                // Fetch GST Rates
+                const gstRes = await fetch('/api/gst-rates');
+                if (gstRes.ok) {
+                    const data = await gstRes.json();
+                    setMasterData(prev => ({ ...prev, gstRates: data.map(g => ({ ...g, id: g._id, isActive: g.isActive ?? true })) }));
+                }
+
+                // Fetch Ramps
+                const rampsRes = await fetch('/api/ramps');
+                if (rampsRes.ok) {
+                    const data = await rampsRes.json();
+                    setMasterData(prev => ({ ...prev, ramps: data.map(r => ({ ...r, id: r._id, isActive: r.isActive ?? true })) }));
+                }
+
+                // Fetch Customer Voice
+                const cvRes = await fetch('/api/customer-voice');
+                if (cvRes.ok) {
+                    const data = await cvRes.json();
+                    setMasterData(prev => ({ ...prev, customerVoice: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true })) }));
+                }
+
+                // Fetch Advisor Voice
+                const avRes = await fetch('/api/advisor-voice');
+                if (avRes.ok) {
+                    const data = await avRes.json();
+                    setMasterData(prev => ({ ...prev, advisorVoice: data.map(a => ({ ...a, id: a._id, isActive: a.isActive ?? true })) }));
+                }
+
+                // Fetch Inventory Settings
+                const invSetRes = await fetch('/api/inventory-settings');
+                if (invSetRes.ok) {
+                    const data = await invSetRes.json();
+                    setMasterData(prev => ({ ...prev, inventorySettings: data.map(i => ({ ...i, id: i._id, isActive: i.isActive ?? true })) }));
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
