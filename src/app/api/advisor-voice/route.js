@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
+import dbConnect from '@/lib/mongodb';
 import AdvisorVoice from '@/models/AdvisorVoice';
 
 export async function GET() {

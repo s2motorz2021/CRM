@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
+import dbConnect from '@/lib/mongodb';
 import InventorySetting from '@/models/InventorySetting';
 
 export async function GET() {
