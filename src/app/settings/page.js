@@ -15,7 +15,7 @@ const masterCategories = [
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'phone', label: 'Phone', type: 'tel', required: true },
-            { key: 'email', label: 'Email', type: 'email' },
+            { key: 'vehicleNo', label: 'Vehicle Registration No.', type: 'text' },
             { key: 'address', label: 'Address', type: 'textarea' },
             { key: 'gstin', label: 'GSTIN', type: 'text' },
         ],
@@ -181,7 +181,7 @@ const masterCategories = [
 // Sample data
 const sampleData = {
     customers: [
-        { id: 1, name: 'Rahul Sharma', phone: '9876543210', email: 'rahul@email.com', address: 'Mumbai', gstin: '', isActive: true },
+        { id: 1, name: 'Rahul Sharma', phone: '9876543210', vehicleNo: 'MH02AB1234', address: 'Mumbai', gstin: '', isActive: true },
     ],
     vehicleBrands: [
         { id: 1, name: 'Honda', country: 'Japan', isActive: true },
