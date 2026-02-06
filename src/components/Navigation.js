@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation'; // Added for pathname
 import Link from 'next/link';
 
 export function Sidebar() {
+    const pathname = usePathname();
     const [user, setUser] = useState(null);
     const [mounted, setMounted] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,7 +31,6 @@ export function Sidebar() {
     }, [pathname]);
 
     const userRole = user?.role || 'Guest';
-    const pathname = usePathname();
 
     const menuItems = [
         { name: 'Dashboard', icon: '📊', path: '/', roles: ['Manager', 'Admin', 'Advisor', 'Technician', 'Accountant', 'Spare Parts Manager'] },
