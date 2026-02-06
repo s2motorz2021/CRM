@@ -11,6 +11,7 @@ const masterCategories = [
         icon: '👤',
         description: 'Customer database',
         color: '#00B8D4',
+        apiEndpoint: '/api/customers',
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'phone', label: 'Phone', type: 'tel', required: true },
@@ -293,6 +294,13 @@ export default function SettingsPage() {
                 if (rolesRes.ok) {
                     const data = await rolesRes.json();
                     setMasterData(prev => ({ ...prev, staffRoles: data.map(r => ({ ...r, id: r._id, isActive: r.isActive ?? true })) }));
+                }
+
+                // Fetch Customers
+                const customersRes = await fetch('/api/customers');
+                if (customersRes.ok) {
+                    const data = await customersRes.json();
+                    setMasterData(prev => ({ ...prev, customers: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true })) }));
                 }
 
                 // Fetch Suppliers
