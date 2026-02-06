@@ -70,6 +70,7 @@ const masterCategories = [
         icon: '📦',
         description: 'Spare parts categories',
         color: '#795548',
+        apiEndpoint: '/api/inventory-categories',
         fields: [
             { key: 'name', label: 'Category Name', type: 'text', required: true },
             { key: 'description', label: 'Description', type: 'text' },
@@ -298,6 +299,13 @@ export default function SettingsPage() {
                 if (serviceTypesRes.ok) {
                     const data = await serviceTypesRes.json();
                     setMasterData(prev => ({ ...prev, serviceTypes: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
+                }
+
+                // Fetch Inventory Categories
+                const categoriesRes = await fetch('/api/inventory-categories');
+                if (categoriesRes.ok) {
+                    const data = await categoriesRes.json();
+                    setMasterData(prev => ({ ...prev, inventoryCategories: data.map(c => ({ ...c, id: c._id, isActive: c.isActive ?? true })) }));
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
