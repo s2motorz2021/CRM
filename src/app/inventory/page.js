@@ -33,7 +33,7 @@ export default function InventoryPage() {
     const [editingPart, setEditingPart] = useState(null);
 
     const [partForm, setPartForm] = useState({
-        partNumber: '', name: '', barcode: '', brand: '', category: '',
+        partNumber: '', name: '', barcode: '', barcodeType: 'Code 128', scanType: 'auto', brand: '', category: '',
         purchasePrice: '', salePrice: '', mrp: '', stock: 0, minStock: 5,
         rackLocation: '', compatibleModels: ''
     });
@@ -103,6 +103,8 @@ export default function InventoryPage() {
         setPartForm({
             partNumber: `SP-${String(nextNum).padStart(3, '0')}`,
             barcode: `BC-SP-${String(nextNum).padStart(3, '0')}`,
+            barcodeType: 'Code 128',
+            scanType: 'auto',
             name: '', brand: '', category: '', purchasePrice: '', salePrice: '', mrp: '',
             stock: 0, minStock: 5, rackLocation: '', compatibleModels: ''
         });
@@ -111,7 +113,11 @@ export default function InventoryPage() {
 
     const handleEditPart = (part) => {
         setEditingPart(part);
-        setPartForm(part);
+        setPartForm({
+            ...part,
+            scanType: part.barcode ? 'manual' : 'auto',
+            barcodeType: part.barcodeType || 'Code 128'
+        });
         setShowPartModal(true);
     };
 
@@ -561,8 +567,38 @@ export default function InventoryPage() {
                                     <input type="text" value={partForm.partNumber} onChange={(e) => setPartForm({ ...partForm, partNumber: e.target.value })} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Barcode <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(auto-generated)</span></label>
-                                    <input type="text" value={partForm.barcode} onChange={(e) => setPartForm({ ...partForm, barcode: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)', background: 'var(--color-gray-100)' }} />
+                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Scan Type</label>
+                                    <select value={partForm.scanType} onChange={(e) => setPartForm({ ...partForm, scanType: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                                        <option value="auto">Auto-generated</option>
+                                        <option value="manual">Manual Input</option>
+                                        <option value="camera">📷 Camera Scan</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Barcode {partForm.scanType === 'auto' ? '(auto-generated)' : ''}</label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            value={partForm.barcode}
+                                            onChange={(e) => setPartForm({ ...partForm, barcode: e.target.value })}
+                                            disabled={partForm.scanType === 'auto'}
+                                            style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)', background: partForm.scanType === 'auto' ? 'var(--color-gray-100)' : 'white' }}
+                                        />
+                                        {partForm.scanType === 'camera' && (
+                                            <button type="button" onClick={() => alert('Starting camera scanner... (Simulated)')} style={{ padding: '0 12px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Scan</button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Barcode Type</label>
+                                    <select value={partForm.barcodeType} onChange={(e) => setPartForm({ ...partForm, barcodeType: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                                        <option value="Code 128">Code 128 (Standard)</option>
+                                        <option value="EAN-13">EAN-13 (International)</option>
+                                        <option value="UPC-A">UPC-A (Retail)</option>
+                                        <option value="QR Code">QR Code</option>
+                                    </select>
                                 </div>
                             </div>
                             <div style={{ marginBottom: 'var(--spacing-md)' }}>

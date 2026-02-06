@@ -674,6 +674,27 @@ export default function JobCardsPage() {
 
     // Estimate sending
     const handleSendEstimate = (method) => {
+        if (method === 'whatsapp') {
+            const customer = customers.find(c => String(c._id || c.id) === String(formData.customerId));
+            const vehicle = vehiclesList.find(v => String(v._id || v.id) === String(formData.vehicleId));
+
+            if (!customer || !customer.phone) {
+                alert('❌ Customer phone number not found!');
+                return;
+            }
+
+            const estimate = calculateEstimate();
+            const advance = parseFloat(formData.advanceAmount) || 0;
+            const balance = estimate - advance;
+
+            const message = `*Estimate from S2 MOTORZ* 🔧\n\nHello *${customer.name}*,\nWe have generated an estimate for your vehicle *${vehicle ? vehicle.brand + ' ' + vehicle.model : 'your vehicle'}* (${vehicle ? vehicle.registrationNo : ''}):\n\n*Cost Breakdown:*\n- Labour Charges: ₹${formData.labourItems.reduce((sum, l) => sum + (l.rate * l.qty), 0)}\n- Spare Parts: ₹${formData.spareRequests.reduce((sum, s) => sum + (s.rate * s.qty), 0)}\n- Outside Work: ₹${formData.outsideWork.reduce((sum, w) => sum + (w.rate || 0), 0)}\n\n*Total Estimated Amount: ₹${estimate}*\n💰 Advance Paid: ₹${advance}\n🧾 *Balance Due: ₹${balance}*\n\nPlease let us know if you approve this estimate. Thank you!`;
+
+            const encodedMsg = encodeURIComponent(message);
+            const phone = customer.phone.startsWith('91') ? customer.phone : `91${customer.phone}`;
+            const waUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
+            window.open(waUrl, '_blank');
+        }
+
         setFormData({ ...formData, estimateSent: { ...formData.estimateSent, [method]: true } });
         alert(`📤 Estimate sent via ${method.charAt(0).toUpperCase() + method.slice(1)}!`);
     };
