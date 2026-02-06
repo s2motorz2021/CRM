@@ -241,6 +241,8 @@ export default function JobCardsPage() {
     const advisorVoiceRef = useRef(null);
     const [activeSignaturePad, setActiveSignaturePad] = useState(null); // 'customer' or 'advisor' or null
     const [spareSearchTerm, setSpareSearchTerm] = useState('');
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [showCustomerSearchDropdown, setShowCustomerSearchDropdown] = useState(false);
 
     const [formData, setFormData] = useState({
         customerId: '', vehicleId: '', serviceType: '', estimatedAmount: '', batteryNo: '',
@@ -968,15 +970,68 @@ export default function JobCardsPage() {
                                     <div>
                                         {/* Customer & Vehicle */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <div>
+                                            <div style={{ position: 'relative' }}>
                                                 <label style={labelStyle}>Select Customer *</label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <select value={String(formData.customerId)} onChange={(e) => handleCustomerChange(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
-                                                        <option value="">Select Customer</option>
-                                                        {customers.map(c => <option key={String(c._id || c.id)} value={String(c._id || c.id)}>{c.name} ({c.phone})</option>)}
-                                                    </select>
+                                                    <div style={{ flex: 1, position: 'relative' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search Name or Phone..."
+                                                            value={customerSearchTerm}
+                                                            onChange={(e) => {
+                                                                setCustomerSearchTerm(e.target.value);
+                                                                setShowCustomerSearchDropdown(true);
+                                                            }}
+                                                            onFocus={() => setShowCustomerSearchDropdown(true)}
+                                                            onClick={() => {
+                                                                if (selectedCustomer) {
+                                                                    setCustomerSearchTerm('');
+                                                                    setShowCustomerSearchDropdown(true);
+                                                                }
+                                                            }}
+                                                            style={{ ...inputStyle, width: '100%' }}
+                                                        />
+                                                        {selectedCustomer && !showCustomerSearchDropdown && (
+                                                            <div style={{ position: 'absolute', top: '50%', right: '30px', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)', pointerEvents: 'none' }}>
+                                                                {selectedCustomer.name}
+                                                            </div>
+                                                        )}
+                                                        {showCustomerSearchDropdown && (
+                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
+                                                                {customers
+                                                                    .filter(c =>
+                                                                        c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                                                                        c.phone.includes(customerSearchTerm)
+                                                                    )
+                                                                    .map(c => (
+                                                                        <div
+                                                                            key={c._id || c.id}
+                                                                            onClick={() => {
+                                                                                handleCustomerChange(c._id || c.id);
+                                                                                setCustomerSearchTerm(c.name); // Keep selected name in view if needed, or clear it
+                                                                                setShowCustomerSearchDropdown(false);
+                                                                            }}
+                                                                            style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--color-gray-100)', background: 'white', transition: 'background 0.2s' }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                                                                        >
+                                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</div>
+                                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📞 {c.phone} | 🚗 {c.vehicleNo || 'N/A'}</div>
+                                                                        </div>
+                                                                    ))}
+                                                                {customers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || c.phone.includes(customerSearchTerm)).length === 0 && (
+                                                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>No customers found</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <button type="button" onClick={() => setShowAddCustomerModal(true)} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>+ New</button>
                                                 </div>
+                                                {selectedCustomer && (
+                                                    <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '8px', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                                                        <strong>Selected:</strong> {selectedCustomer.name} ({selectedCustomer.phone})
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <label style={labelStyle}>Select Vehicle *</label>
