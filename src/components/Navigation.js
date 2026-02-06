@@ -24,6 +24,11 @@ export function Sidebar() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Close mobile menu when pathname changes
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [pathname]);
+
     const userRole = user?.role || 'Guest';
     const pathname = usePathname();
 
