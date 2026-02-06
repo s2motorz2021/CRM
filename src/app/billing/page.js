@@ -729,7 +729,7 @@ export default function BillingPage() {
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Payment Amount</label>
-                            <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(Number(e.target.value))} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1.1rem' }} />
+                            <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1.1rem' }} />
                         </div>
                         <div style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Payment Method</label>

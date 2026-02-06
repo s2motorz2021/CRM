@@ -104,7 +104,7 @@ const InvoiceSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to calculate balance and status
-InvoiceSchema.pre('save', function (next) {
+InvoiceSchema.pre('save', async function () {
     console.log('--- Invoice Pre-Save Hook Start ---');
     console.log('Doc state (input):', {
         invoiceNo: this.invoiceNo,
@@ -140,7 +140,6 @@ InvoiceSchema.pre('save', function (next) {
     }
 
     console.log('--- Invoice Pre-Save Hook End ---');
-    next();
 });
 
 
