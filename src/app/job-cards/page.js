@@ -220,7 +220,7 @@ export default function JobCardsPage() {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     // Inline Customer/Vehicle Creation
     const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
-    const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
+    const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', vehicleNo: '', address: '' });
     const [newVehicleData, setNewVehicleData] = useState({ registrationNo: '', brand: '', model: '', color: '' });
     const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
@@ -584,7 +584,10 @@ export default function JobCardsPage() {
             const custRes = await fetch('/api/customers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCustomerData)
+                body: JSON.stringify({
+                    ...newCustomerData,
+                    vehicleNo: newVehicleData.registrationNo // Auto-link vehicle number
+                })
             });
 
             if (!custRes.ok) {
@@ -2039,7 +2042,7 @@ export default function JobCardsPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
                                 <input type="text" placeholder="Name *" value={newCustomerData.name} onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })} style={inputStyle} />
                                 <input type="tel" placeholder="Phone *" value={newCustomerData.phone} onChange={(e) => setNewCustomerData({ ...newCustomerData, phone: e.target.value })} style={inputStyle} />
-                                <input type="email" placeholder="Email" value={newCustomerData.email} onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })} style={inputStyle} />
+
                                 <input type="text" placeholder="Address" value={newCustomerData.address} onChange={(e) => setNewCustomerData({ ...newCustomerData, address: e.target.value })} style={inputStyle} />
                             </div>
 
