@@ -184,16 +184,33 @@ export async function POST(request) {
 
 export async function PATCH(request) {
     try {
+        console.log('--- Invoice PATCH Route Start ---');
         await dbConnect();
         const data = await request.json();
+        console.log('PATCH Input Data:', JSON.stringify(data, null, 2));
+
         const { _id, recordPayment, paymentAmount, paymentMethod, updatedByName, ...otherUpdateData } = data;
 
-        if (!_id) return NextResponse.json({ error: 'Invoice ID required' }, { status: 400 });
+        if (!_id) {
+            console.log('Error: Missing Invoice ID');
+            return NextResponse.json({ error: 'Invoice ID required' }, { status: 400 });
+        }
 
         const invoice = await Invoice.findById(_id);
-        if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        if (!invoice) {
+            console.log('Error: Invoice not found for ID:', _id);
+            return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        }
+
+        console.log('Current Invoice State:', {
+            invoiceNo: invoice.invoiceNo,
+            amountPaid: invoice.amountPaid,
+            grandTotal: invoice.grandTotal,
+            isLocked: invoice.isLocked
+        });
 
         if (invoice.isLocked && !recordPayment) {
+            console.log('Error: Attempted to edit locked invoice');
             return NextResponse.json({ error: 'Invoice is locked and cannot be edited' }, { status: 403 });
         }
 
@@ -201,6 +218,7 @@ export async function PATCH(request) {
 
         // Handle payment recording
         if (recordPayment) {
+            console.log('Recording Payment:', { paymentAmount, paymentMethod });
             const payAmt = Number(paymentAmount) || 0;
             if (payAmt <= 0) return NextResponse.json({ error: 'Payment amount must be greater than 0' }, { status: 400 });
 
@@ -216,6 +234,7 @@ export async function PATCH(request) {
                 userName: updatedByName || 'System',
                 timestamp: new Date()
             });
+            console.log('Payment recorded in audit log. New total paid:', invoice.amountPaid);
         }
 
         // Handle field updates and potential total recalculation
@@ -224,6 +243,7 @@ export async function PATCH(request) {
 
         trackFields.forEach(field => {
             if (otherUpdateData[field] !== undefined && JSON.stringify(invoice[field]) !== JSON.stringify(otherUpdateData[field])) {
+                console.log(`Field ${field} changed. Updating...`);
                 const oldValue = JSON.parse(JSON.stringify(invoice[field]));
                 invoice[field] = otherUpdateData[field];
                 needsRecalc = true;
@@ -239,6 +259,7 @@ export async function PATCH(request) {
         });
 
         if (needsRecalc) {
+            console.log('Recalculating totals...');
             const totals = calculateInvoiceTotals(
                 invoice.parts,
                 invoice.labour,
@@ -247,12 +268,14 @@ export async function PATCH(request) {
                 invoice.couponDiscount
             );
             Object.assign(invoice, totals);
+            console.log('Totals recalculated:', totals);
         }
 
         // Explicitly force balance calculation before save
         const finalTotal = Number(invoice.grandTotal) || 0;
         const finalPaid = Number(invoice.amountPaid) || 0;
         invoice.balanceAmount = finalTotal - finalPaid;
+        console.log('Pre-save balance check:', { finalTotal, finalPaid, balance: invoice.balanceAmount });
 
         // Auto-update status
         if (invoice.balanceAmount <= 0 && finalTotal > 0) {
@@ -268,16 +291,20 @@ export async function PATCH(request) {
         } else {
             invoice.paymentStatus = 'pending';
         }
+        console.log('Final payment status:', invoice.paymentStatus);
 
+        console.log('Attempting invoice.save()...');
         await invoice.save();
+        console.log('invoice.save() successful.');
 
         const updatedInvoice = await Invoice.findById(invoice._id)
             .populate('customerId')
             .populate('vehicleId');
 
+        console.log('--- Invoice PATCH Route End (Success) ---');
         return NextResponse.json(updatedInvoice);
     } catch (error) {
         console.error('Invoice update error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Unknown server error' }, { status: 500 });
     }
 }
