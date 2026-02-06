@@ -157,13 +157,14 @@ export default function JobCardsPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [jcRes, custRes, vehRes, staffRes, partsRes, rolesRes] = await Promise.all([
+            const [jcRes, custRes, vehRes, staffRes, partsRes, rolesRes, serviceTypesRes] = await Promise.all([
                 fetch('/api/job-cards'),
                 fetch('/api/customers'),
                 fetch('/api/vehicles'),
                 fetch('/api/staff'),
                 fetch('/api/parts'),
-                fetch('/api/roles')
+                fetch('/api/roles'),
+                fetch('/api/service-types')
             ]);
             if (jcRes.ok) setJobCards(await jcRes.json());
             if (custRes.ok) setCustomers(await custRes.json());
@@ -186,6 +187,10 @@ export default function JobCardsPage() {
                     stock: p.stock,
                     partNumber: p.partNumber
                 })));
+            }
+
+            if (serviceTypesRes.ok) {
+                setServiceTypesList(await serviceTypesRes.json());
             }
         } catch (error) {
             console.error('Fetch error:', error);
@@ -218,6 +223,11 @@ export default function JobCardsPage() {
     const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
     const [newVehicleData, setNewVehicleData] = useState({ registrationNo: '', brand: '', model: '', color: '' });
     const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
+    // Inline Service Type Creation
+    const [showAddServiceTypeModal, setShowAddServiceTypeModal] = useState(false);
+    const [newServiceTypeData, setNewServiceTypeData] = useState({ name: '', ratePerHour: '', description: '' });
+    const [isSavingServiceType, setIsSavingServiceType] = useState(false);
     // Voice search and dropdown states
     const [customerVoiceSearch, setCustomerVoiceSearch] = useState('');
     const [customerVoiceCategory, setCustomerVoiceCategory] = useState('All');
@@ -494,6 +504,65 @@ export default function JobCardsPage() {
         const customer = customers.find(c => c._id === customerId);
         setSelectedCustomer(customer);
         setFormData({ ...formData, customerId, vehicleId: '' });
+    };
+
+    const handleServiceTypeChange = (serviceName) => {
+        const selectedType = serviceTypesList.find(s => s.name === serviceName);
+        let updatedLabour = [...formData.labourItems];
+
+        // If a rate exists and no labour item matches the service name, add it
+        if (selectedType && selectedType.ratePerHour > 0) {
+            const existingLabour = updatedLabour.find(l => l.name === serviceName);
+            if (!existingLabour) {
+                updatedLabour.push({
+                    id: Date.now(),
+                    name: serviceName,
+                    rate: selectedType.ratePerHour,
+                    qty: 1
+                });
+            }
+        }
+
+        setFormData({
+            ...formData,
+            serviceType: serviceName,
+            labourItems: updatedLabour,
+            estimatedAmount: calculateEstimate() // Trigger recalculation
+        });
+    };
+
+    const handleSaveNewServiceType = async () => {
+        if (!newServiceTypeData.name || !newServiceTypeData.ratePerHour) {
+            alert('Service name and rate are required');
+            return;
+        }
+
+        setIsSavingServiceType(true);
+        try {
+            const res = await fetch('/api/service-types', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newServiceTypeData)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to save service type');
+            }
+
+            const savedType = await res.json();
+            await fetchData();
+
+            setFormData({ ...formData, serviceType: savedType.name });
+            setShowAddServiceTypeModal(false);
+            setNewServiceTypeData({ name: '', ratePerHour: '', description: '' });
+            alert('✅ Service type saved successfully!');
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Error: ' + error.message);
+        } finally {
+            setIsSavingServiceType(false);
+        }
     };
 
     // Save new customer and vehicle from inline modal
@@ -895,14 +964,17 @@ export default function JobCardsPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                             <div>
                                                 <label style={labelStyle}>Service Type *</label>
-                                                <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} required disabled={formData.isLocked} style={inputStyle}>
-                                                    <option value="">Select Service</option>
-                                                    {serviceTypesList.length > 0 ? (
-                                                        serviceTypesList.map((s) => <option key={String(s._id || s.id)} value={s.name}>{s.name}</option>)
-                                                    ) : (
-                                                        serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)
-                                                    )}
-                                                </select>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <select value={formData.serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)} required disabled={formData.isLocked} style={{ ...inputStyle, flex: 1 }}>
+                                                        <option value="">Select Service</option>
+                                                        {serviceTypesList.length > 0 ? (
+                                                            serviceTypesList.map((s) => <option key={String(s._id || s.id)} value={s.name}>{s.name}</option>)
+                                                        ) : (
+                                                            serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)
+                                                        )}
+                                                    </select>
+                                                    <button type="button" onClick={() => setShowAddServiceTypeModal(true)} disabled={formData.isLocked} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: formData.isLocked ? 'not-allowed' : 'pointer', fontWeight: 600, whiteSpace: 'nowrap', opacity: formData.isLocked ? 0.7 : 1 }}>+ New</button>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label style={labelStyle}>Allocate Technician</label>
@@ -1930,6 +2002,37 @@ export default function JobCardsPage() {
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button type="button" onClick={() => setShowAddCustomerModal(false)} style={{ flex: 1, padding: '12px', border: '1px solid var(--color-gray-200)', borderRadius: '8px', background: 'white', cursor: 'pointer' }}>Cancel</button>
                                 <button type="button" onClick={handleSaveNewCustomer} disabled={isSavingCustomer} style={{ flex: 1, padding: '12px', border: 'none', borderRadius: '8px', background: 'var(--color-primary)', color: 'white', cursor: isSavingCustomer ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: isSavingCustomer ? 0.7 : 1 }}>{isSavingCustomer ? 'Saving...' : '✅ Save & Select'}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Service Type Modal */}
+            {showAddServiceTypeModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '450px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>🛠️ Add Service Type</h3>
+                            <button onClick={() => setShowAddServiceTypeModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
+                        </div>
+                        <div style={{ padding: '24px' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Service Name *</label>
+                                <input type="text" placeholder="e.g. Full Body Wash" value={newServiceTypeData.name} onChange={(e) => setNewServiceTypeData({ ...newServiceTypeData, name: e.target.value })} style={inputStyle} />
+                            </div>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Labour Rate (₹) *</label>
+                                <input type="number" placeholder="0.00" value={newServiceTypeData.ratePerHour} onChange={(e) => setNewServiceTypeData({ ...newServiceTypeData, ratePerHour: e.target.value })} style={inputStyle} />
+                            </div>
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={labelStyle}>Description</label>
+                                <textarea placeholder="Optional description..." value={newServiceTypeData.description} onChange={(e) => setNewServiceTypeData({ ...newServiceTypeData, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button type="button" onClick={() => setShowAddServiceTypeModal(false)} style={{ flex: 1, padding: '12px', border: '1px solid var(--color-gray-200)', borderRadius: '8px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                <button type="button" onClick={handleSaveNewServiceType} disabled={isSavingServiceType} style={{ flex: 1, padding: '12px', border: 'none', borderRadius: '8px', background: 'var(--color-primary)', color: 'white', cursor: isSavingServiceType ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: isSavingServiceType ? 0.7 : 1 }}>{isSavingServiceType ? 'Saving...' : '✅ Save & Select'}</button>
                             </div>
                         </div>
                     </div>
