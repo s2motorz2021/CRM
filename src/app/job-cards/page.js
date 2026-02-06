@@ -1779,12 +1779,12 @@ export default function JobCardsPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                             <div style={{ padding: '12px', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
                                                 <p style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Customer</p>
-                                                <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>{printJobCard.customerName}</p>
-                                                <p style={{ margin: '2px 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>📞 {printJobCard.phone}</p>
+                                                <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>{printJobCard.customerName || printJobCard.customerId?.name}</p>
+                                                <p style={{ margin: '2px 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>📞 {printJobCard.phone || printJobCard.customerId?.phone}</p>
                                             </div>
                                             <div style={{ padding: '12px', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
                                                 <p style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Vehicle</p>
-                                                <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>🏍️ {printJobCard.vehicleInfo}</p>
+                                                <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>🏍️ {printJobCard.vehicleInfo || (printJobCard.vehicleId ? `${printJobCard.vehicleId.brand} ${printJobCard.vehicleId.model} (${printJobCard.vehicleId.registrationNo})` : '')}</p>
                                                 {printJobCard.batteryNo && <p style={{ margin: '2px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>🔋 Battery: {printJobCard.batteryNo}</p>}
                                             </div>
                                         </div>
@@ -1811,12 +1811,12 @@ export default function JobCardsPage() {
                                         )}
 
                                         {/* Spare Parts */}
-                                        {printJobCard.spareRequests && printJobCard.spareRequests.filter(s => s.status === 'approved').length > 0 && (
+                                        {printJobCard.spareRequests && printJobCard.spareRequests.length > 0 && (
                                             <div style={{ marginBottom: 'var(--spacing-md)' }}>
                                                 <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Spare Parts</p>
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                                                     <thead><tr style={{ background: 'rgba(0, 184, 212, 0.1)' }}><th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid var(--color-gray-200)' }}>Part Name</th><th style={{ padding: '8px', textAlign: 'center', width: '60px', borderBottom: '1px solid var(--color-gray-200)' }}>Qty</th><th style={{ padding: '8px', textAlign: 'right', width: '80px', borderBottom: '1px solid var(--color-gray-200)' }}>Rate</th><th style={{ padding: '8px', textAlign: 'right', width: '90px', borderBottom: '1px solid var(--color-gray-200)' }}>Amount</th></tr></thead>
-                                                    <tbody>{printJobCard.spareRequests.filter(s => s.status === 'approved').map((item, idx) => (<tr key={idx} style={{ borderBottom: '1px solid var(--color-gray-100)' }}><td style={{ padding: '8px' }}>{item.name}</td><td style={{ padding: '8px', textAlign: 'center' }}>{item.qty}</td><td style={{ padding: '8px', textAlign: 'right' }}>₹{item.rate}</td><td style={{ padding: '8px', textAlign: 'right', fontWeight: 500 }}>₹{item.rate * item.qty}</td></tr>))}</tbody>
+                                                    <tbody>{printJobCard.spareRequests.map((item, idx) => (<tr key={idx} style={{ borderBottom: '1px solid var(--color-gray-100)' }}><td style={{ padding: '8px' }}>{item.name}</td><td style={{ padding: '8px', textAlign: 'center' }}>{item.qty}</td><td style={{ padding: '8px', textAlign: 'right' }}>₹{item.rate}</td><td style={{ padding: '8px', textAlign: 'right', fontWeight: 500 }}>₹{item.rate * item.qty}</td></tr>))}</tbody>
                                                 </table>
                                             </div>
                                         )}
@@ -1825,16 +1825,26 @@ export default function JobCardsPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
                                             <div></div>
                                             <div style={{ background: 'linear-gradient(135deg, var(--color-primary), #0097A7)', padding: '14px', borderRadius: '8px', color: 'white' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.9rem', opacity: 0.9 }}><span>Estimated Amount</span><span>₹{printJobCard.estimatedAmount}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.9rem', opacity: 0.9 }}><span>Estimated Amount</span><span>₹{printJobCard.estimatedAmount || calculateEstimate(printJobCard.labourItems, printJobCard.spareRequests, printJobCard.outsideWork)}</span></div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.9rem', opacity: 0.9 }}><span>Advance Paid {printJobCard.advanceMethod && `(${printJobCard.advanceMethod})`}</span><span>₹{printJobCard.advanceAmount || 0}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 700, paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.3)' }}><span>Balance Due</span><span>₹{printJobCard.estimatedAmount - (printJobCard.advanceAmount || 0)}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 700, paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.3)' }}><span>Balance Due</span><span>₹{(printJobCard.estimatedAmount || calculateEstimate(printJobCard.labourItems, printJobCard.spareRequests, printJobCard.outsideWork)) - (printJobCard.advanceAmount || 0)}</span></div>
                                             </div>
                                         </div>
 
                                         {/* Signatures */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)', paddingTop: 'var(--spacing-lg)', borderTop: '1px dashed var(--color-gray-200)' }}>
-                                            <div style={{ textAlign: 'center' }}><div style={{ height: '50px', borderBottom: '1px solid var(--color-gray-400)', marginBottom: '6px' }}></div><p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Customer Signature</p></div>
-                                            <div style={{ textAlign: 'center' }}><div style={{ height: '50px', borderBottom: '1px solid var(--color-gray-400)', marginBottom: '6px' }}></div><p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>For S2 MOTORZ</p></div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ height: '80px', borderBottom: '1px solid var(--color-gray-400)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {printJobCard.signatures?.customer && <img src={printJobCard.signatures.customer} alt="Customer Sig" style={{ maxHeight: '100%' }} />}
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Customer Signature</p>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ height: '80px', borderBottom: '1px solid var(--color-gray-400)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {printJobCard.signatures?.advisor && <img src={printJobCard.signatures.advisor} alt="Advisor Sig" style={{ maxHeight: '100%' }} />}
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>For S2 MOTORZ</p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1857,9 +1867,9 @@ export default function JobCardsPage() {
 
                                             {/* Customer & Vehicle Info */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)', fontSize: '0.9rem' }}>
-                                                <div><strong>Customer:</strong> {printJobCard.customerName}</div>
-                                                <div><strong>Phone:</strong> {printJobCard.phone}</div>
-                                                <div><strong>Vehicle:</strong> {printJobCard.vehicleInfo}</div>
+                                                <div><strong>Customer:</strong> {printJobCard.customerName || printJobCard.customerId?.name}</div>
+                                                <div><strong>Phone:</strong> {printJobCard.phone || printJobCard.customerId?.phone}</div>
+                                                <div><strong>Vehicle:</strong> {printJobCard.vehicleInfo || (printJobCard.vehicleId ? `${printJobCard.vehicleId.brand} ${printJobCard.vehicleId.model} (${printJobCard.vehicleId.registrationNo})` : '')}</div>
                                                 <div><strong>Service:</strong> {printJobCard.serviceType}</div>
                                                 {printJobCard.odometer && <div><strong>Odometer:</strong> {printJobCard.odometer} km</div>}
                                                 {printJobCard.batteryNo && <div><strong>Battery No:</strong> {printJobCard.batteryNo}</div>}
