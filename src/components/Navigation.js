@@ -8,6 +8,7 @@ export function Sidebar() {
     const [mounted, setMounted] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [permissions, setPermissions] = useState(null);
 
     useEffect(() => {
         setMounted(true);
@@ -25,6 +26,26 @@ export function Sidebar() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Fetch role permissions from database
+    useEffect(() => {
+        const fetchPermissions = async () => {
+            if (!user?.role) return;
+            try {
+                const res = await fetch('/api/roles');
+                if (res.ok) {
+                    const roles = await res.json();
+                    const userRoleData = roles.find(r => r.name === user.role);
+                    if (userRoleData?.permissions) {
+                        setPermissions(userRoleData.permissions);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching role permissions:', err);
+            }
+        };
+        fetchPermissions();
+    }, [user?.role]);
+
     // Close mobile menu when pathname changes
     useEffect(() => {
         setIsMobileMenuOpen(false);
@@ -32,21 +53,32 @@ export function Sidebar() {
 
     const userRole = user?.role || 'Guest';
 
+    // Menu items with permission key mapping
     const menuItems = [
-        { name: 'Dashboard', icon: '📊', path: '/', roles: ['Manager', 'Admin', 'Advisor', 'Technician', 'Accountant', 'Spare Parts Manager'] },
-        { name: 'Job Cards', icon: '📋', path: '/job-cards', roles: ['Manager', 'Admin', 'Advisor', 'Technician'] },
-        { name: 'Quick Service', icon: '⚡', path: '/quick-service', roles: ['Manager', 'Admin', 'Advisor', 'Technician'] },
-        { name: 'Appointments', icon: '📅', path: '/appointments', roles: ['Manager', 'Admin', 'Advisor'] },
-        { name: 'Inventory', icon: '📦', path: '/inventory', roles: ['Manager', 'Admin', 'Spare Parts Manager', 'Accountant'] },
-        { name: 'Billing', icon: '🧾', path: '/billing', roles: ['Manager', 'Admin', 'Accountant', 'Advisor'] },
-        { name: 'Leads & CRM', icon: '👥', path: '/crm', roles: ['Manager', 'Admin', 'Advisor'] },
-        { name: 'Finance', icon: '💰', path: '/finance', roles: ['Manager', 'Admin', 'Accountant'] },
-        { name: 'Reports', icon: '📈', path: '/billing/reports', roles: ['Manager', 'Admin', 'Accountant'] },
-        { name: 'HR', icon: '👨‍💼', path: '/hr', roles: ['Manager', 'Admin'] },
-        { name: 'Jessi AI', icon: '🤖', path: '/jessi-ai', roles: ['Manager', 'Admin', 'Advisor'] },
-        { name: 'Marketing', icon: '📢', path: '/marketing', roles: ['Manager', 'Admin'] },
-        { name: 'Settings', icon: '⚙️', path: '/settings', roles: ['Manager', 'Admin'] },
+        { name: 'Dashboard', icon: '📊', path: '/', permissionKey: 'dashboard' },
+        { name: 'Job Cards', icon: '📋', path: '/job-cards', permissionKey: 'crm' },
+        { name: 'Quick Service', icon: '⚡', path: '/quick-service', permissionKey: 'crm' },
+        { name: 'Appointments', icon: '📅', path: '/appointments', permissionKey: 'crm' },
+        { name: 'Inventory', icon: '📦', path: '/inventory', permissionKey: 'inventory' },
+        { name: 'Billing', icon: '🧾', path: '/billing', permissionKey: 'billing' },
+        { name: 'Leads & CRM', icon: '👥', path: '/crm', permissionKey: 'crm' },
+        { name: 'Finance', icon: '💰', path: '/finance', permissionKey: 'finance' },
+        { name: 'Reports', icon: '📈', path: '/billing/reports', permissionKey: 'reports' },
+        { name: 'HR', icon: '👨‍💼', path: '/hr', permissionKey: 'hr' },
+        { name: 'Jessi AI', icon: '🤖', path: '/jessi-ai', permissionKey: 'crm' },
+        { name: 'Marketing', icon: '📢', path: '/marketing', permissionKey: 'crm' },
+        { name: 'Settings', icon: '⚙️', path: '/settings', permissionKey: 'settings' },
     ];
+
+    // Check if user has permission for a menu item
+    const hasPermission = (permissionKey) => {
+        // Admin and Manager always have full access
+        if (userRole === 'Admin' || userRole === 'Manager') return true;
+        // If permissions loaded from database, use them
+        if (permissions) return permissions[permissionKey] === true;
+        // Fallback: show dashboard for everyone
+        return permissionKey === 'dashboard';
+    };
 
     if (!mounted) return null;
 
@@ -121,7 +153,7 @@ export function Sidebar() {
                 </div>
                 <nav style={{ flex: 1, overflowY: 'auto' }}>
                     <ul style={{ listStyle: 'none' }}>
-                        {menuItems.filter(item => item.roles.includes(userRole)).map((item, index) => (
+                        {menuItems.filter(item => hasPermission(item.permissionKey)).map((item, index) => (
                             <li key={index} style={{ marginBottom: '8px' }}>
                                 <Link
                                     href={item.path}
