@@ -92,6 +92,7 @@ const masterCategories = [
         fields: [
             { key: 'name', label: 'Unit Name', type: 'text', required: true },
             { key: 'abbreviation', label: 'Abbreviation', type: 'text', required: true },
+            { key: 'decimalValue', label: 'Decimal Value', type: 'number', required: false },
         ],
     },
     {

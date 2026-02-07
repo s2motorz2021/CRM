@@ -4,11 +4,11 @@ import Unit from '@/models/Unit';
 
 // Default units to seed
 const defaultUnits = [
-    { name: 'Numbers', abbreviation: 'Nos' },
-    { name: 'Liter', abbreviation: 'lts' },
-    { name: 'Milli Liter', abbreviation: 'ml' },
-    { name: 'Kilogram', abbreviation: 'Kg' },
-    { name: 'Grams', abbreviation: 'gm' },
+    { name: 'Numbers', abbreviation: 'Nos', decimalValue: 1 },
+    { name: 'Liter', abbreviation: 'lts', decimalValue: 1 },
+    { name: 'Milli Liter', abbreviation: 'ml', decimalValue: 0.001 },
+    { name: 'Kilogram', abbreviation: 'Kg', decimalValue: 1 },
+    { name: 'Grams', abbreviation: 'gm', decimalValue: 0.001 },
 ];
 
 export async function GET() {
@@ -56,6 +56,7 @@ export async function POST(request) {
             const newUnit = new Unit({
                 name: body.name,
                 abbreviation: body.abbreviation,
+                decimalValue: body.decimalValue ?? 1,
                 isActive: body.isActive ?? true,
             });
             await newUnit.save();
