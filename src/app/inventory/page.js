@@ -24,6 +24,7 @@ export default function InventoryPage() {
     const [filterBrand, setFilterBrand] = useState('all');
     const [suppliers, setSuppliers] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [units, setUnits] = useState([]);
     const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
 
@@ -35,7 +36,7 @@ export default function InventoryPage() {
 
     const [partForm, setPartForm] = useState({
         partCode: '', name: '', barcode: '', barcodeType: 'Code 128', scanType: 'auto', brand: '', category: '',
-        purchasePrice: '', salePrice: '', mrp: '', stock: 0, minStock: 5,
+        purchasePrice: '', salePrice: '', mrp: '', stock: 0, minStock: 5, unit: 'Nos',
         rackLocation: '', compatibleModels: ''
     });
 
@@ -71,6 +72,13 @@ export default function InventoryPage() {
             if (categoriesRes.ok) {
                 const categoriesData = await categoriesRes.json();
                 setCategories(categoriesData.map(c => c.name));
+            }
+
+            // Fetch Units
+            const unitsRes = await fetch('/api/units');
+            if (unitsRes.ok) {
+                const unitsData = await unitsRes.json();
+                setUnits(unitsData.map(u => u.abbreviation));
             }
         } catch (error) {
             console.error('Error fetching inventory data:', error);
@@ -115,7 +123,7 @@ export default function InventoryPage() {
             barcodeType: 'Code 128',
             scanType: 'auto',
             name: '', brand: '', category: '', purchasePrice: '', salePrice: '', mrp: '',
-            stock: 0, minStock: 5, rackLocation: '', compatibleModels: ''
+            stock: 0, minStock: 5, unit: 'Nos', rackLocation: '', compatibleModels: ''
         });
         setShowPartModal(true);
     };
@@ -667,7 +675,7 @@ export default function InventoryPage() {
                                     <input type="number" value={partForm.mrp} onChange={(e) => setPartForm({ ...partForm, mrp: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Current Stock</label>
                                     <input type="number" value={partForm.stock} onChange={(e) => setPartForm({ ...partForm, stock: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
@@ -675,6 +683,12 @@ export default function InventoryPage() {
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Min Stock Level</label>
                                     <input type="number" value={partForm.minStock} onChange={(e) => setPartForm({ ...partForm, minStock: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Unit</label>
+                                    <select value={partForm.unit} onChange={(e) => setPartForm({ ...partForm, unit: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                                        {units.map(u => <option key={u} value={u}>{u}</option>)}
+                                    </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Rack Location</label>

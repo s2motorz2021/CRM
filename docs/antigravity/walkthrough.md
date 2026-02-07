@@ -60,6 +60,15 @@ Fixed an issue where the Dark Mode and Accent Color buttons in the Settings page
   - Connected UI controls to the global `ThemeContext`.
   - Added click handlers to allow users to change the brand accent color instantly across the entire application.
 
+### Unit Field in Inventory
+Added a new "Unit" master data category and integrated it with the Inventory spare parts system.
+
+- **Model (`src/models/Unit.js`)**: Created schema with `name` and `abbreviation` fields.
+- **API (`src/app/api/units/route.js`)**: GET/POST endpoint with auto-seeding of default units (Nos, lts, ml, Kg, gm).
+- **SparePart Model**: Added `unit` field (default: "Nos").
+- **Settings Page**: Added "Units" to master data categories for management.
+- **Inventory Page**: Added Unit dropdown to the Add/Edit Spare Part modal.
+
 ## Verification
 
 ### Modal Minimization

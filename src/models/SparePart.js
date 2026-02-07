@@ -12,6 +12,7 @@ const SparePartSchema = new mongoose.Schema({
     mrp: { type: Number, default: 0 },
     stock: { type: Number, default: 0 },
     minStock: { type: Number, default: 5 },
+    unit: { type: String, default: 'Nos' },
     rackLocation: { type: String },
     compatibleModels: { type: String },
 }, { timestamps: true });

@@ -83,6 +83,18 @@ const masterCategories = [
         ],
     },
     {
+        id: 'units',
+        name: 'Units',
+        icon: '📏',
+        description: 'Measurement units for parts',
+        color: '#009688',
+        apiEndpoint: '/api/units',
+        fields: [
+            { key: 'name', label: 'Unit Name', type: 'text', required: true },
+            { key: 'abbreviation', label: 'Abbreviation', type: 'text', required: true },
+        ],
+    },
+    {
         id: 'serviceTypes',
         name: 'Service Types',
         icon: '🔧',

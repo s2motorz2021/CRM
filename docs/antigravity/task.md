@@ -42,3 +42,10 @@
     - [x] Integrate `ThemeProvider` in `ClientLayout.js`
     - [x] Fix Dark Mode toggle and Accent Color buttons in `settings/page.js`
     - [x] Verify persistence and global application of theme/accent
+- [x] Add Unit Field to Inventory
+    - [x] Create `Unit.js` model
+    - [x] Create `/api/units` route
+    - [x] Add `unit` field to `SparePart.js` model
+    - [x] Add "Units" to `masterCategories` in Settings page
+    - [x] Add Unit dropdown to Inventory add/edit modal
+    - [x] Verify integration and persistence
