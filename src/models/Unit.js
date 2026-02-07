@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const UnitSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    abbreviation: { type: String, required: true, unique: true },
+    abbreviation: { type: String, required: true },
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

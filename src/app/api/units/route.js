@@ -14,12 +14,17 @@ const defaultUnits = [
 export async function GET() {
     try {
         await dbConnect();
-        let units = await Unit.find({ isActive: true }).sort({ name: 1 });
+        let units = await Unit.find({}).sort({ name: 1 });
 
-        // Seed default units if none exist
+        // Seed default units if none exist at all
         if (units.length === 0) {
-            await Unit.insertMany(defaultUnits);
-            units = await Unit.find({ isActive: true }).sort({ name: 1 });
+            try {
+                await Unit.insertMany(defaultUnits);
+                units = await Unit.find({}).sort({ name: 1 });
+            } catch (seedError) {
+                console.error('Error seeding units:', seedError);
+                // If seeding fails, return empty array
+            }
         }
 
         return NextResponse.json(units);
@@ -34,18 +39,30 @@ export async function POST(request) {
         await dbConnect();
         const body = await request.json();
 
+        // Ensure isActive is set
+        if (body.isActive === undefined) {
+            body.isActive = true;
+        }
+
         if (body._id) {
             // Update existing
             const updated = await Unit.findByIdAndUpdate(body._id, body, { new: true });
+            if (!updated) {
+                return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
+            }
             return NextResponse.json(updated);
         } else {
             // Create new
-            const newUnit = new Unit(body);
+            const newUnit = new Unit({
+                name: body.name,
+                abbreviation: body.abbreviation,
+                isActive: body.isActive ?? true,
+            });
             await newUnit.save();
             return NextResponse.json(newUnit, { status: 201 });
         }
     } catch (error) {
         console.error('POST /api/units error:', error);
-        return NextResponse.json({ error: 'Failed to save unit' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to save unit' }, { status: 500 });
     }
 }
