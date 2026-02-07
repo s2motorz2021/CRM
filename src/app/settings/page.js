@@ -418,6 +418,13 @@ export default function SettingsPage() {
                     const data = await unitsRes.json();
                     setMasterData(prev => ({ ...prev, units: data.map(u => ({ ...u, id: u._id, isActive: u.isActive ?? true })) }));
                 }
+
+                // Fetch Users
+                const usersRes = await fetch('/api/users');
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    setUsers(usersData.map(u => ({ ...u, id: u._id, username: u.username || u.phone })));
+                }
             } catch (error) {
                 console.error('Error fetching master data:', error);
             }
@@ -432,7 +439,7 @@ export default function SettingsPage() {
     const [branchForm, setBranchForm] = useState({ name: '', code: '', address: '', phone: '', email: '', manager: '' });
 
     // User state
-    const [users, setUsers] = useState(sampleUsers);
+    const [users, setUsers] = useState([]);
     const [showUserModal, setShowUserModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [userForm, setUserForm] = useState({ name: '', username: '', email: '', password: '', role: 'Service Advisor', branch: 'Main Branch', phone: '' });
@@ -602,15 +609,38 @@ export default function SettingsPage() {
     };
 
     // User handlers
-    const handleSaveUser = () => {
+    const handleSaveUser = async () => {
         if (!userForm.name || !userForm.username) { alert('Name and Username are required'); return; }
         if (!editingUser && !userForm.password) { alert('Password is required for new users'); return; }
-        if (editingUser) {
-            setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...editingUser, ...userForm } : u));
-        } else {
-            setUsers(prev => [...prev, { ...userForm, id: Date.now(), isActive: true, lastLogin: 'Never' }]);
+
+        try {
+            const body = editingUser
+                ? { ...userForm, _id: editingUser._id || editingUser.id }
+                : { ...userForm, phone: userForm.username };
+
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (res.ok) {
+                const savedUser = await res.json();
+                if (editingUser) {
+                    setUsers(prev => prev.map(u => (u._id || u.id) === (editingUser._id || editingUser.id) ? { ...savedUser, id: savedUser._id } : u));
+                } else {
+                    setUsers(prev => [...prev, { ...savedUser, id: savedUser._id }]);
+                }
+                alert('✅ User saved successfully!');
+                resetUserForm();
+            } else {
+                const err = await res.json();
+                alert(`❌ Failed to save user: ${err.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error saving user:', error);
+            alert('❌ Error saving user');
         }
-        resetUserForm();
     };
 
     const resetUserForm = () => {
@@ -619,9 +649,33 @@ export default function SettingsPage() {
         setShowUserModal(false);
     };
 
-    const handleResetPassword = () => {
+    const handleResetPassword = async () => {
         if (!newPassword || newPassword.length < 6) { alert('Password must be at least 6 characters'); return; }
-        alert(`✅ Password reset for ${showPasswordModal.name}`);
+
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    _id: showPasswordModal._id || showPasswordModal.id,
+                    password: newPassword,
+                    name: showPasswordModal.name,
+                    role: showPasswordModal.role,
+                    branch: showPasswordModal.branch,
+                    phone: showPasswordModal.phone || showPasswordModal.username,
+                }),
+            });
+
+            if (res.ok) {
+                alert(`✅ Password reset for ${showPasswordModal.name}`);
+            } else {
+                alert('❌ Failed to reset password');
+            }
+        } catch (error) {
+            console.error('Error resetting password:', error);
+            alert('❌ Error resetting password');
+        }
+
         setShowPasswordModal(null);
         setNewPassword('');
     };
