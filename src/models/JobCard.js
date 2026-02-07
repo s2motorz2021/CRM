@@ -29,7 +29,7 @@ const JobCardSchema = new mongoose.Schema({
     }],
 
     spareRequests: [{
-        partNumber: { type: String },
+        partCode: { type: String },
         name: { type: String },
         rate: { type: Number },
         qty: { type: Number },

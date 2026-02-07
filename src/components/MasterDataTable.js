@@ -390,23 +390,27 @@ export default function MasterDataTable({ master, data, onSave, onDelete, onRest
                                             }}
                                         />
                                     ) : field.type === 'select' ? (
-                                        <select
-                                            value={formData[field.key] || ''}
-                                            onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                                            required={field.required}
-                                            style={{
-                                                width: '100%',
-                                                padding: 'var(--spacing-sm)',
-                                                borderRadius: 'var(--radius-sm)',
-                                                border: '1px solid var(--color-gray-200)',
-                                                fontSize: '0.9rem',
-                                            }}
-                                        >
-                                            <option value="">Select {field.label}</option>
-                                            {(field.options || []).map((opt) => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
+                                        <>
+                                            <input
+                                                list={`list-${field.key}`}
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.required}
+                                                placeholder={`Search or Select ${field.label}`}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: 'var(--spacing-sm)',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    border: '1px solid var(--color-gray-200)',
+                                                    fontSize: '0.9rem',
+                                                }}
+                                            />
+                                            <datalist id={`list-${field.key}`}>
+                                                {(field.options || []).map((opt) => (
+                                                    <option key={opt} value={opt} />
+                                                ))}
+                                            </datalist>
+                                        </>
                                     ) : field.type === 'checkbox' ? (
                                         <input
                                             type="checkbox"

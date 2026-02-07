@@ -185,7 +185,7 @@ export default function JobCardsPage() {
                     name: p.name,
                     rate: p.salePrice,
                     stock: p.stock,
-                    partNumber: p.partNumber
+                    partCode: p.partCode
                 })));
             }
 
@@ -203,8 +203,26 @@ export default function JobCardsPage() {
         fetchData();
     }, []);
 
+    // Handle clicking outside of dropdowns to close them
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (customerSearchRef.current && !customerSearchRef.current.contains(event.target)) {
+                setShowCustomerSearchDropdown(false);
+            }
+            if (customerVoiceRef.current && !customerVoiceRef.current.contains(event.target)) {
+                setShowCustomerVoiceDropdown(false);
+            }
+            if (advisorVoiceRef.current && !advisorVoiceRef.current.contains(event.target)) {
+                setShowAdvisorVoiceDropdown(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const [viewMode, setViewMode] = useState('kanban');
     const [showFullModal, setShowFullModal] = useState(false);
+    const [isJobCardMinimized, setIsJobCardMinimized] = useState(false);
     const [editingJobCard, setEditingJobCard] = useState(null);
     const [filterType, setFilterType] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -239,6 +257,7 @@ export default function JobCardsPage() {
     const vehiclePhotoInputRef = useRef(null);
     const customerVoiceRef = useRef(null);
     const advisorVoiceRef = useRef(null);
+    const customerSearchRef = useRef(null);
     const [activeSignaturePad, setActiveSignaturePad] = useState(null); // 'customer' or 'advisor' or null
     const [spareSearchTerm, setSpareSearchTerm] = useState('');
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
@@ -671,7 +690,7 @@ export default function JobCardsPage() {
 
     const handleAddSpare = (item) => {
         if (!formData.spareRequests.find(s => s.id === item.id)) {
-            setFormData({ ...formData, spareRequests: [...formData.spareRequests, { ...item, qty: 1, partNumber: item.partNumber, status: 'pending' }] });
+            setFormData({ ...formData, spareRequests: [...formData.spareRequests, { ...item, qty: 1, partCode: item.partCode, status: 'pending' }] });
         }
     };
     const handleRemoveSpare = (id) => setFormData({ ...formData, spareRequests: formData.spareRequests.filter(s => s.id !== id) });
@@ -936,904 +955,926 @@ export default function JobCardsPage() {
 
             {/* Full Job Card Modal */}
             {showFullModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', width: '95%', maxWidth: '900px', maxHeight: '95vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+                <div style={isJobCardMinimized ? {
+                    position: 'fixed', bottom: '20px', right: '380px', width: '350px', zIndex: 1000,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)', borderRadius: '12px', overflow: 'hidden',
+                    background: 'white', border: '1px solid var(--color-primary)'
+                } : {
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div style={isJobCardMinimized ? { width: '100%', display: 'flex', flexDirection: 'column' } : {
+                        background: 'white', borderRadius: 'var(--radius-lg)', width: '95%', maxWidth: '900px',
+                        maxHeight: '95vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)'
+                    }}>
                         {/* Modal Header */}
-                        <div style={{ padding: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
+                        <div style={{ padding: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: isJobCardMinimized ? 'var(--color-primary)' : 'white', zIndex: 10, cursor: isJobCardMinimized ? 'pointer' : 'default' }} onClick={() => isJobCardMinimized && setIsJobCardMinimized(false)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>🔧 {editingJobCard ? `Edit ${editingJobCard.jobCardNo || editingJobCard.id || 'Job Card'}` : 'New Job Card'}</h3>
-                                {formData.isLocked && <span style={{ background: '#F44336', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>🔒 LOCKED</span>}
+                                <h3 style={{ fontSize: isJobCardMinimized ? '1rem' : '1.2rem', fontWeight: 600, margin: 0, color: isJobCardMinimized ? 'white' : 'inherit' }}>
+                                    🔧 {isJobCardMinimized ? 'JC: ' + (selectedCustomer?.name || 'New') : (editingJobCard ? `Edit ${editingJobCard.jobCardNo || editingJobCard.id || 'Job Card'}` : 'New Job Card')}
+                                </h3>
+                                {!isJobCardMinimized && formData.isLocked && <span style={{ background: '#F44336', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>🔒 LOCKED</span>}
                             </div>
-                            <button onClick={() => setShowFullModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button onClick={(e) => { e.stopPropagation(); setIsJobCardMinimized(!isJobCardMinimized); }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title={isJobCardMinimized ? "Expand" : "Minimize"}>
+                                    {isJobCardMinimized ? '🗖' : '—'}
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); setShowFullModal(false); setIsJobCardMinimized(false); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title="Close">×</button>
+                            </div>
                         </div>
 
-                        {/* Tabs */}
-                        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-gray-200)', padding: '0 var(--spacing-lg)', overflowX: 'auto', gap: '8px' }}>
-                            {[
-                                { id: 'details', label: '1. Details' },
-                                { id: 'inspection', label: '2. Inspection' },
-                                { id: 'labour', label: '3. Labour' },
-                                { id: 'spares', label: '4. Spare & Outside' },
-                                { id: 'estimate_sign', label: '5. Estimate & Sign' },
-                                { id: 'next_service', label: '6. Next Service Advice' },
-                                { id: 'delivery', label: '7. Delivery' }
-                            ].map(tab => (
-                                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} style={{ padding: '12px 20px', border: 'none', borderBottom: activeTab === tab.id ? '3px solid var(--color-primary)' : '3px solid transparent', background: 'transparent', cursor: 'pointer', fontWeight: activeTab === tab.id ? 600 : 400, color: activeTab === tab.id ? 'var(--color-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tab.label}</button>
-                            ))}
-                        </div>
+                        {!isJobCardMinimized && (
+                            <>
 
-                        <form onSubmit={handleFullSubmit}>
-                            <div style={{ padding: 'var(--spacing-lg)' }}>
+                                {/* Tabs */}
+                                <div style={{ display: 'flex', borderBottom: '1px solid var(--color-gray-200)', padding: '0 var(--spacing-lg)', overflowX: 'auto', gap: '8px' }}>
+                                    {[
+                                        { id: 'details', label: '1. Details' },
+                                        { id: 'inspection', label: '2. Inspection' },
+                                        { id: 'labour', label: '3. Labour' },
+                                        { id: 'spares', label: '4. Spare & Outside' },
+                                        { id: 'estimate_sign', label: '5. Estimate & Sign' },
+                                        { id: 'next_service', label: '6. Next Service Advice' },
+                                        { id: 'delivery', label: '7. Delivery' }
+                                    ].map(tab => (
+                                        <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} style={{ padding: '12px 20px', border: 'none', borderBottom: activeTab === tab.id ? '3px solid var(--color-primary)' : '3px solid transparent', background: 'transparent', cursor: 'pointer', fontWeight: activeTab === tab.id ? 600 : 400, color: activeTab === tab.id ? 'var(--color-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tab.label}</button>
+                                    ))}
+                                </div>
 
-                                {/* Details Tab */}
-                                {activeTab === 'details' && (
-                                    <div>
-                                        {/* Customer & Vehicle */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <div style={{ position: 'relative' }}>
-                                                <label style={labelStyle}>Select Customer *</label>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <div style={{ flex: 1, position: 'relative' }}>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search Name or Phone..."
-                                                            value={customerSearchTerm}
-                                                            onChange={(e) => {
-                                                                setCustomerSearchTerm(e.target.value);
-                                                                setShowCustomerSearchDropdown(true);
-                                                            }}
-                                                            onFocus={() => setShowCustomerSearchDropdown(true)}
-                                                            onClick={() => {
-                                                                if (selectedCustomer) {
-                                                                    setCustomerSearchTerm('');
-                                                                    setShowCustomerSearchDropdown(true);
-                                                                }
-                                                            }}
-                                                            style={{ ...inputStyle, width: '100%' }}
-                                                        />
-                                                        {selectedCustomer && !showCustomerSearchDropdown && (
-                                                            <div style={{ position: 'absolute', top: '50%', right: '30px', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)', pointerEvents: 'none' }}>
-                                                                {selectedCustomer.name}
-                                                            </div>
-                                                        )}
-                                                        {showCustomerSearchDropdown && (
-                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
-                                                                {customers
-                                                                    .filter(c =>
-                                                                        c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-                                                                        c.phone.includes(customerSearchTerm)
-                                                                    )
-                                                                    .map(c => (
-                                                                        <div
-                                                                            key={c._id || c.id}
-                                                                            onClick={() => {
-                                                                                handleCustomerChange(c._id || c.id);
-                                                                                setCustomerSearchTerm(c.name); // Keep selected name in view if needed, or clear it
-                                                                                setShowCustomerSearchDropdown(false);
-                                                                            }}
-                                                                            style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--color-gray-100)', background: 'white', transition: 'background 0.2s' }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.background = 'var(--color-gray-50)'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.background = 'white'}
-                                                                        >
-                                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</div>
-                                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📞 {c.phone} | 🚗 {c.vehicleNo || 'N/A'}</div>
-                                                                        </div>
-                                                                    ))}
-                                                                {customers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || c.phone.includes(customerSearchTerm)).length === 0 && (
-                                                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>No customers found</div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <button type="button" onClick={() => setShowAddCustomerModal(true)} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>+ New</button>
-                                                </div>
-                                                {selectedCustomer && (
-                                                    <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '8px', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
-                                                        <strong>Selected:</strong> {selectedCustomer.name} ({selectedCustomer.phone})
-                                                    </div>
-                                                )}
-                                            </div>
+                                <form onSubmit={handleFullSubmit}>
+                                    <div style={{ padding: 'var(--spacing-lg)' }}>
+
+                                        {/* Details Tab */}
+                                        {activeTab === 'details' && (
                                             <div>
-                                                <label style={labelStyle}>Select Vehicle *</label>
-                                                <select value={String(formData.vehicleId)} onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })} required style={inputStyle}>
-                                                    <option value="">Select Vehicle</option>
-                                                    {selectedCustomer?.vehicles?.map(v => <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>)}
-                                                    {/* Fallback for when vehicles are in a separate collection */}
-                                                    {vehiclesList?.filter(v => String(v.customerId?._id || v.customerId) === String(formData.customerId)).map(v => (
-                                                        <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Service Type & Technician */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <div>
-                                                <label style={labelStyle}>Service Type *</label>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <select value={formData.serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)} required disabled={formData.isLocked} style={{ ...inputStyle, flex: 1 }}>
-                                                        <option value="">Select Service</option>
-                                                        {serviceTypesList.length > 0 ? (
-                                                            serviceTypesList.map((s) => <option key={String(s._id || s.id)} value={s.name}>{s.name}</option>)
-                                                        ) : (
-                                                            serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)
-                                                        )}
-                                                    </select>
-                                                    <button type="button" onClick={() => setShowAddServiceTypeModal(true)} disabled={formData.isLocked} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: formData.isLocked ? 'not-allowed' : 'pointer', fontWeight: 600, whiteSpace: 'nowrap', opacity: formData.isLocked ? 0.7 : 1 }}>+ New</button>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label style={labelStyle}>Allocate Technician</label>
-                                                <select value={String(formData.technicianId)} onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })} style={inputStyle}>
-                                                    <option value="">Select Technician</option>
-                                                    {techniciansList.map(t => <option key={String(t._id || t.id)} value={String(t._id || t.id)}>{t.name} ({t.role})</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Battery Number & Odometer */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <div><label style={labelStyle}>🔋 Battery Number</label><input type="text" value={formData.batteryNo} onChange={(e) => setFormData({ ...formData, batteryNo: e.target.value })} placeholder="e.g. BAT-2023-001" disabled={formData.isLocked} style={inputStyle} /></div>
-                                            <div><label style={labelStyle}>Odometer (km) *</label><input type="number" value={formData.odometer} onChange={(e) => handleOdometerChange(e.target.value)} placeholder="e.g. 12500" disabled={formData.isLocked} style={inputStyle} /></div>
-                                            <div><label style={labelStyle}>Oil Level</label><select value={formData.oilLevel} onChange={(e) => setFormData({ ...formData, oilLevel: e.target.value })} disabled={formData.isLocked} style={inputStyle}><option>Full</option><option>Normal</option><option>Low</option><option>Empty</option></select></div>
-                                        </div>
-
-                                        {/* Fuel Level Indicator */}
-                                        <div style={{ marginBottom: 'var(--spacing-md)', padding: 'var(--spacing-md)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)' }}>
-                                            <label style={{ ...labelStyle, marginBottom: '12px' }}>⛽ Fuel Level</label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-                                                {/* Fuel Gauge Visual */}
-                                                <div style={{
-                                                    flex: 1,
-                                                    height: '24px',
-                                                    background: 'var(--color-gray-200)',
-                                                    borderRadius: '12px',
-                                                    overflow: 'hidden',
-                                                    position: 'relative',
-                                                    border: '2px solid var(--color-gray-300)',
-                                                }}>
-                                                    <div style={{
-                                                        width: `${formData.fuelLevel}%`,
-                                                        height: '100%',
-                                                        background: `linear-gradient(90deg, 
-                                                            ${formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : formData.fuelLevel <= 75 ? '#FFC107' : '#4CAF50'} 0%,
-                                                            ${formData.fuelLevel <= 25 ? '#EF5350' : formData.fuelLevel <= 50 ? '#FFB74D' : formData.fuelLevel <= 75 ? '#FFD54F' : '#66BB6A'} 100%)`,
-                                                        borderRadius: '10px',
-                                                        transition: 'width 0.3s ease, background 0.3s ease',
-                                                        boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3)',
-                                                    }} />
-                                                    {/* Gauge markers */}
-                                                    <div style={{ position: 'absolute', top: 0, left: '25%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
-                                                    <div style={{ position: 'absolute', top: 0, left: '50%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
-                                                    <div style={{ position: 'absolute', top: 0, left: '75%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
-                                                </div>
-                                                {/* Fuel Level Value */}
-                                                <div style={{
-                                                    minWidth: '60px',
-                                                    padding: '6px 12px',
-                                                    background: formData.fuelLevel <= 25 ? 'rgba(244, 67, 54, 0.1)' : formData.fuelLevel <= 50 ? 'rgba(255, 152, 0, 0.1)' : 'rgba(76, 175, 80, 0.1)',
-                                                    color: formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : '#4CAF50',
-                                                    borderRadius: '8px',
-                                                    fontWeight: 700,
-                                                    fontSize: '0.9rem',
-                                                    textAlign: 'center',
-                                                }}>
-                                                    {formData.fuelLevel}%
-                                                </div>
-                                            </div>
-                                            {/* Slider Input */}
-                                            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <span style={{ fontSize: '0.8rem', color: '#F44336' }}>E</span>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="100"
-                                                    value={formData.fuelLevel}
-                                                    onChange={(e) => setFormData({ ...formData, fuelLevel: parseInt(e.target.value) })}
-                                                    disabled={formData.isLocked}
-                                                    style={{
-                                                        flex: 1,
-                                                        height: '8px',
-                                                        cursor: formData.isLocked ? 'not-allowed' : 'pointer',
-                                                        accentColor: formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : '#4CAF50',
-                                                    }}
-                                                />
-                                                <span style={{ fontSize: '0.8rem', color: '#4CAF50' }}>F</span>
-                                            </div>
-                                            {/* Quick Select Buttons */}
-                                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                                {[0, 25, 50, 75, 100].map(level => (
-                                                    <button
-                                                        key={level}
-                                                        type="button"
-                                                        onClick={() => !formData.isLocked && setFormData({ ...formData, fuelLevel: level })}
-                                                        disabled={formData.isLocked}
-                                                        style={{
-                                                            flex: 1,
-                                                            padding: '6px',
-                                                            border: formData.fuelLevel === level ? 'none' : '1px solid var(--color-gray-200)',
-                                                            borderRadius: '6px',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 500,
-                                                            cursor: formData.isLocked ? 'not-allowed' : 'pointer',
-                                                            background: formData.fuelLevel === level
-                                                                ? (level <= 25 ? '#F44336' : level <= 50 ? '#FF9800' : '#4CAF50')
-                                                                : 'white',
-                                                            color: formData.fuelLevel === level ? 'white' : 'var(--text-secondary)',
-                                                            transition: 'all 0.2s',
-                                                        }}
-                                                    >
-                                                        {level === 0 ? 'Empty' : level === 100 ? 'Full' : `${level}%`}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 2. Inspection Tab */}
-                                {activeTab === 'inspection' && (
-                                    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
-                                            <span style={{ fontSize: '1.5rem' }}>🔍</span>
-                                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Technical Inspection Checklist</h4>
-                                        </div>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-                                            {Object.keys(formData.inspection || {}).map((item) => (
-                                                <div key={item} style={{ padding: 'var(--spacing-md)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <label style={{ ...labelStyle, textTransform: 'capitalize', color: 'var(--color-primary)' }}>
-                                                        {item.replace(/([A-Z])/g, ' $1').trim()}
-                                                    </label>
-                                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                                        {['Low', 'Normal', 'High', 'Good', 'Bad', 'Functional', 'Broken', 'Clean', 'Dirty'].filter(v =>
-                                                            (item.includes('Oil') || item.includes('Fluid') || item.includes('Coolant')) ? ['Low', 'Normal', 'High'].includes(v) :
-                                                                (item.includes('Pads') || item.includes('Tires') || item.includes('Battery')) ? ['Good', 'Bad'].includes(v) :
-                                                                    item.includes('Lights') ? ['Functional', 'Broken'].includes(v) :
-                                                                        ['Clean', 'Dirty'].includes(v)
-                                                        ).map(val => (
-                                                            <button
-                                                                key={val}
-                                                                type="button"
-                                                                onClick={() => setFormData({ ...formData, inspection: { ...formData.inspection, [item]: val } })}
-                                                                style={{
-                                                                    flex: 1, padding: '6px 4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-gray-300)', cursor: 'pointer',
-                                                                    background: formData.inspection[item] === val ? 'var(--color-primary)' : 'white',
-                                                                    color: formData.inspection[item] === val ? 'white' : 'var(--text-secondary)',
-                                                                    fontWeight: formData.inspection[item] === val ? 600 : 400
-                                                                }}
-                                                            >
-                                                                {val}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <div style={{ borderTop: '2px dashed var(--color-gray-200)', marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-lg)' }}>
-                                            <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)' }}>📝 Intake Observations & Photos</h4>
-
-                                            {/* Customer Voice with Searchable Dropdown */}
-                                            <div style={{ marginBottom: 'var(--spacing-lg)' }} ref={customerVoiceRef}>
-                                                <label style={{ ...labelStyle, marginBottom: '12px' }}>🗣️ Customer Voice (Complaint/Request)</label>
-
-                                                {/* Selected items display */}
-                                                {formData.customerVoice && (
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                                                        {formData.customerVoice.split(', ').filter(v => v).map((item, idx) => (
-                                                            <span key={idx} style={{
-                                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                                padding: '4px 10px', background: 'rgba(156, 39, 176, 0.15)',
-                                                                border: '1px solid #9C27B0', borderRadius: '16px',
-                                                                fontSize: '0.8rem', color: '#9C27B0',
-                                                            }}>
-                                                                {item}
-                                                                {!formData.isLocked && (
-                                                                    <button type="button" onClick={() => {
-                                                                        const items = formData.customerVoice.split(', ').filter(v => v !== item);
-                                                                        setFormData({ ...formData, customerVoice: items.join(', ') });
-                                                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#9C27B0', padding: 0 }}>×</button>
-                                                                )}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {/* Search and Category Filter */}
-                                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                                    <div style={{ flex: 1, position: 'relative' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
-                                                            <span style={{ padding: '10px', color: 'var(--text-muted)' }}>🔍</span>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Search complaints..."
-                                                                value={customerVoiceSearch}
-                                                                onChange={(e) => { setCustomerVoiceSearch(e.target.value); setShowCustomerVoiceDropdown(true); }}
-                                                                onFocus={() => setShowCustomerVoiceDropdown(true)}
-                                                                disabled={formData.isLocked}
-                                                                style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 10px 10px 0', fontSize: '0.9rem' }}
-                                                            />
-                                                        </div>
-
-                                                        {/* Dropdown */}
-                                                        {showCustomerVoiceDropdown && !formData.isLocked && (
-                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
-                                                                {masterCustomerVoice
-                                                                    .filter(opt => opt.isActive)
-                                                                    .filter(opt => customerVoiceCategory === 'All' || opt.category === customerVoiceCategory)
-                                                                    .filter(opt => opt.name.toLowerCase().includes(customerVoiceSearch.toLowerCase()) || opt.description?.toLowerCase().includes(customerVoiceSearch.toLowerCase()))
-                                                                    .map(opt => (
-                                                                        <div
-                                                                            key={opt.id}
-                                                                            onClick={() => {
-                                                                                const current = formData.customerVoice || '';
-                                                                                if (!current.includes(opt.name)) {
-                                                                                    const newValue = current ? `${current}, ${opt.name}` : opt.name;
-                                                                                    setFormData({ ...formData, customerVoice: newValue });
-                                                                                }
-                                                                                setCustomerVoiceSearch('');
-                                                                                setShowCustomerVoiceDropdown(false);
-                                                                            }}
-                                                                            style={{
-                                                                                padding: '10px 14px', cursor: 'pointer',
-                                                                                borderBottom: '1px solid var(--color-gray-100)',
-                                                                                background: formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.08)' : 'white',
-                                                                            }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(156, 39, 176, 0.1)'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.background = formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.08)' : 'white'}
-                                                                        >
-                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                                <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{opt.name}</span>
-                                                                                <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--color-gray-100)', borderRadius: '10px', color: 'var(--text-muted)' }}>{opt.category}</span>
-                                                                            </div>
-                                                                            {opt.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{opt.description}</div>}
-                                                                        </div>
-                                                                    ))}
-                                                                {masterCustomerVoice.filter(opt => opt.isActive && (customerVoiceCategory === 'All' || opt.category === customerVoiceCategory) && opt.name.toLowerCase().includes(customerVoiceSearch.toLowerCase())).length === 0 && (
-                                                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No complaints found</div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Category Filter */}
-                                                    <select
-                                                        value={customerVoiceCategory}
-                                                        onChange={(e) => setCustomerVoiceCategory(e.target.value)}
-                                                        disabled={formData.isLocked}
-                                                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--color-gray-200)', fontSize: '0.85rem', minWidth: '120px', background: 'white' }}
-                                                    >
-                                                        {customerVoiceCategories.map(cat => (
-                                                            <option key={cat} value={cat}>{cat === 'All' ? '📋 All Categories' : cat}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-
-                                                {/* Quick buttons for common options */}
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                                                    {masterCustomerVoice.filter(opt => opt.isActive).slice(0, 8).map(opt => (
-                                                        <button
-                                                            key={opt.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (!formData.isLocked) {
-                                                                    const current = formData.customerVoice || '';
-                                                                    if (!current.includes(opt.name)) {
-                                                                        const newValue = current ? `${current}, ${opt.name}` : opt.name;
-                                                                        setFormData({ ...formData, customerVoice: newValue });
-                                                                    }
-                                                                }
-                                                            }}
-                                                            disabled={formData.isLocked}
-                                                            style={{
-                                                                padding: '4px 10px', fontSize: '0.75rem',
-                                                                background: formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.15)' : 'var(--color-gray-100)',
-                                                                border: formData.customerVoice?.includes(opt.name) ? '1px solid #9C27B0' : '1px solid var(--color-gray-300)',
-                                                                borderRadius: '12px', cursor: formData.isLocked ? 'not-allowed' : 'pointer',
-                                                                color: formData.customerVoice?.includes(opt.name) ? '#9C27B0' : 'var(--text-primary)',
-                                                                transition: 'all 0.2s',
-                                                            }}
-                                                        >{opt.name}</button>
-                                                    ))}
-                                                </div>
-
-                                                {/* Custom text input */}
-                                                <textarea value={formData.customerVoice} onChange={(e) => setFormData({ ...formData, customerVoice: e.target.value })} rows={2} placeholder="Selected complaints appear here. You can also type custom complaints..." disabled={formData.isLocked} style={{ ...inputStyle, resize: 'vertical' }} />
-                                            </div>
-
-                                            {/* Advisor Voice with Searchable Dropdown */}
-                                            <div style={{ marginBottom: 'var(--spacing-md)' }} ref={advisorVoiceRef}>
-                                                <label style={{ ...labelStyle, marginBottom: '12px' }}>👨‍💼 Advisor Voice (Observations/Notes)</label>
-
-                                                {/* Selected items display */}
-                                                {formData.advisorVoice && (
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                                                        {(formData.advisorVoice || '').split(', ').filter(v => v).map((item, idx) => (
-                                                            <span key={idx} style={{
-                                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                                padding: '4px 10px', background: 'rgba(0, 188, 212, 0.15)',
-                                                                border: '1px solid #00BCD4', borderRadius: '16px',
-                                                                fontSize: '0.8rem', color: '#00BCD4',
-                                                            }}>
-                                                                {item}
-                                                                {!formData.isLocked && (
-                                                                    <button type="button" onClick={() => {
-                                                                        const items = (formData.advisorVoice || '').split(', ').filter(v => v !== item);
-                                                                        setFormData({ ...formData, advisorVoice: items.join(', ') });
-                                                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#00BCD4', padding: 0 }}>×</button>
-                                                                )}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {/* Search and Category Filter */}
-                                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                                    <div style={{ flex: 1, position: 'relative' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
-                                                            <span style={{ padding: '10px', color: 'var(--text-muted)' }}>🔍</span>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Search observations..."
-                                                                value={advisorVoiceSearch}
-                                                                onChange={(e) => { setAdvisorVoiceSearch(e.target.value); setShowAdvisorVoiceDropdown(true); }}
-                                                                onFocus={() => setShowAdvisorVoiceDropdown(true)}
-                                                                disabled={formData.isLocked}
-                                                                style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 10px 10px 0', fontSize: '0.9rem' }}
-                                                            />
-                                                        </div>
-
-                                                        {/* Dropdown */}
-                                                        {showAdvisorVoiceDropdown && !formData.isLocked && (
-                                                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
-                                                                {masterAdvisorVoice
-                                                                    .filter(opt => opt.isActive)
-                                                                    .filter(opt => advisorVoiceCategory === 'All' || opt.category === advisorVoiceCategory)
-                                                                    .filter(opt => opt.name.toLowerCase().includes(advisorVoiceSearch.toLowerCase()) || opt.description?.toLowerCase().includes(advisorVoiceSearch.toLowerCase()))
-                                                                    .map(opt => (
-                                                                        <div
-                                                                            key={opt.id}
-                                                                            onClick={() => {
-                                                                                const current = formData.advisorVoice || '';
-                                                                                if (!current.includes(opt.name)) {
-                                                                                    const newValue = current ? `${current}, ${opt.name}` : opt.name;
-                                                                                    setFormData({ ...formData, advisorVoice: newValue });
-                                                                                }
-                                                                                setAdvisorVoiceSearch('');
-                                                                                setShowAdvisorVoiceDropdown(false);
-                                                                            }}
-                                                                            style={{
-                                                                                padding: '10px 14px', cursor: 'pointer',
-                                                                                borderBottom: '1px solid var(--color-gray-100)',
-                                                                                background: formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.08)' : 'white',
-                                                                            }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 188, 212, 0.1)'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.background = formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.08)' : 'white'}
-                                                                        >
-                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                                <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{opt.name}</span>
-                                                                                <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--color-gray-100)', borderRadius: '10px', color: 'var(--text-muted)' }}>{opt.category}</span>
-                                                                            </div>
-                                                                            {opt.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{opt.description}</div>}
-                                                                        </div>
-                                                                    ))}
-                                                                {masterAdvisorVoice.filter(opt => opt.isActive && (advisorVoiceCategory === 'All' || opt.category === advisorVoiceCategory) && opt.name.toLowerCase().includes(advisorVoiceSearch.toLowerCase())).length === 0 && (
-                                                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No observations found</div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Category Filter */}
-                                                    <select
-                                                        value={advisorVoiceCategory}
-                                                        onChange={(e) => setAdvisorVoiceCategory(e.target.value)}
-                                                        disabled={formData.isLocked}
-                                                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--color-gray-200)', fontSize: '0.85rem', minWidth: '120px', background: 'white' }}
-                                                    >
-                                                        {advisorVoiceCategories.map(cat => (
-                                                            <option key={cat} value={cat}>{cat === 'All' ? '📋 All Categories' : cat}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-
-                                                {/* Quick buttons for common options */}
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                                                    {masterAdvisorVoice.filter(opt => opt.isActive).slice(0, 8).map(opt => (
-                                                        <button
-                                                            key={opt.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (!formData.isLocked) {
-                                                                    const current = formData.advisorVoice || '';
-                                                                    if (!current.includes(opt.name)) {
-                                                                        const newValue = current ? `${current}, ${opt.name}` : opt.name;
-                                                                        setFormData({ ...formData, advisorVoice: newValue });
-                                                                    }
-                                                                }
-                                                            }}
-                                                            disabled={formData.isLocked}
-                                                            style={{
-                                                                padding: '4px 10px', fontSize: '0.75rem',
-                                                                background: formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.15)' : 'var(--color-gray-100)',
-                                                                border: formData.advisorVoice?.includes(opt.name) ? '1px solid #00BCD4' : '1px solid var(--color-gray-300)',
-                                                                borderRadius: '12px', cursor: formData.isLocked ? 'not-allowed' : 'pointer',
-                                                                color: formData.advisorVoice?.includes(opt.name) ? '#00BCD4' : 'var(--text-primary)',
-                                                                transition: 'all 0.2s',
-                                                            }}
-                                                        >{opt.name}</button>
-                                                    ))}
-                                                </div>
-
-                                                {/* Custom text input */}
-                                                <textarea value={formData.advisorVoice || ''} onChange={(e) => setFormData({ ...formData, advisorVoice: e.target.value })} rows={2} placeholder="Selected observations appear here. You can also type custom notes..." disabled={formData.isLocked} style={{ ...inputStyle, resize: 'vertical' }} />
-                                            </div>
-
-                                            {/* Vehicle Photos */}
-                                            <div style={{ marginTop: 'var(--spacing-lg)', padding: 'var(--spacing-md)', background: 'rgba(33, 150, 243, 0.05)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(33, 150, 243, 0.2)' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                                                    <label style={{ ...labelStyle, margin: 0, fontSize: '1rem' }}>📸 Vehicle Photos <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>({vehiclePhotos.length}/6)</span></label>
-                                                    {vehiclePhotos.length > 0 && (
-                                                        <button type="button" onClick={() => openPhotoViewer(0)} style={{ padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}>👀 View All</button>
-                                                    )}
-                                                </div>
-                                                {/* Photo Upload/Capture Options */}
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 'var(--spacing-md)' }}>
-                                                    <button type="button" onClick={() => vehiclePhotoInputRef.current?.click()} disabled={formData.isLocked || vehiclePhotos.length >= 6} style={{ padding: '10px 16px', background: formData.isLocked || vehiclePhotos.length >= 6 ? 'var(--color-gray-300)' : '#2196F3', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: formData.isLocked || vehiclePhotos.length >= 6 ? 'not-allowed' : 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>📁 Upload</button>
-                                                    <button type="button" onClick={() => startCameraCapture()} disabled={formData.isLocked || vehiclePhotos.length >= 6} style={{ padding: '10px 16px', background: formData.isLocked || vehiclePhotos.length >= 6 ? 'var(--color-gray-300)' : '#4CAF50', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: formData.isLocked || vehiclePhotos.length >= 6 ? 'not-allowed' : 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>📷 Camera</button>
-                                                    <input ref={vehiclePhotoInputRef} type="file" accept="image/*" onChange={handleVehiclePhotoUpload} style={{ display: 'none' }} />
-                                                </div>
-
-                                                {/* Photo Grid */}
-                                                {vehiclePhotos.length > 0 && (
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                                                        {vehiclePhotos.map((photo, index) => (
-                                                            <div key={index} onClick={() => openPhotoViewer(index)} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '2px solid var(--color-gray-200)' }}>
-                                                                <img src={photo.url} alt={photo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                {!formData.isLocked && (
-                                                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeVehiclePhoto(index); }} style={{ position: 'absolute', top: '4px', right: '4px', width: '24px', height: '24px', background: 'rgba(244, 67, 54, 0.9)', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 5. Estimate & Sign Tab */}
-                                {activeTab === 'estimate_sign' && (
-                                    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
-                                            {/* Estimate Summary */}
-                                            <div>
-                                                <div style={{ padding: 'var(--spacing-md)', background: 'var(--color-gray-100)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)' }}>
-                                                    <label style={labelStyle}>💰 Estimated Amount (₹) *</label>
-                                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>₹{calculateEstimate()}</div>
-                                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Auto-calculated from Labour + Spares</div>
-                                                </div>
-
-                                                <div style={{ padding: 'var(--spacing-md)', background: 'rgba(76, 175, 80, 0.1)', borderRadius: 'var(--radius-md)', border: '1px solid #4CAF50' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Subtotal</span><span style={{ fontWeight: 600 }}>₹{calculateEstimate()}</span></div>
-
-                                                    <div style={{ marginTop: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid rgba(76, 175, 80, 0.2)' }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
-                                                            <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💰 Advance Amount (₹)</label>
-                                                                <input
-                                                                    type="number"
-                                                                    value={formData.advanceAmount}
-                                                                    onChange={(e) => setFormData({ ...formData, advanceAmount: parseFloat(e.target.value) || 0 })}
-                                                                    placeholder="0.00"
-                                                                    disabled={formData.isLocked}
-                                                                    style={{ ...inputStyle, padding: '8px' }}
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💳 Payment Mode</label>
-                                                                <select
-                                                                    value={formData.advanceMethod}
-                                                                    onChange={(e) => setFormData({ ...formData, advanceMethod: e.target.value })}
-                                                                    disabled={formData.isLocked}
-                                                                    style={{ ...inputStyle, padding: '8px' }}
-                                                                >
-                                                                    <option value="">Select Mode</option>
-                                                                    <option value="Cash">Cash</option>
-                                                                    <option value="Card">Card</option>
-                                                                    <option value="UPI">UPI</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #4CAF50', paddingTop: '12px', marginTop: '4px', fontSize: '1.2rem', fontWeight: 700, color: '#2E7D32' }}>
-                                                        <span>Balance Due</span>
-                                                        <span>₹{Math.max(0, calculateEstimate() - (formData.advanceAmount || 0))}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div style={{ marginTop: 'var(--spacing-lg)', display: 'flex', gap: '8px' }}>
-                                                    <button type="button" onClick={() => handleSendEstimate('whatsapp')} style={{ flex: 1, padding: '12px', background: '#25D366', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                                        <span>📱 Send WhatsApp</span>
-                                                    </button>
-                                                    <button type="button" onClick={() => window.print()} style={{ flex: 1, padding: '12px', background: 'var(--color-gray-800)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                                        <span>🖨️ Print Estimate</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Signatures */}
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                                                <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
-                                                    <label style={labelStyle}>✍️ Customer Digital Signature</label>
-                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('customer')}>
-                                                        {formData.signatures.customer ? <img src={formData.signatures.customer} alt="Customer" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Customer)</span>}
-                                                    </div>
-                                                </div>
-                                                <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
-                                                    <label style={labelStyle}>✍️ Advisor/Technician Signature</label>
-                                                    <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('advisor')}>
-                                                        {formData.signatures.advisor ? <img src={formData.signatures.advisor} alt="Advisor" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Advisor)</span>}
-                                                    </div>
-                                                </div>
-
-                                                {/* Signature Pad Modal */}
-                                                {activeSignaturePad && (
-                                                    <SignaturePad
-                                                        title={activeSignaturePad === 'customer' ? 'Customer Signature' : 'Advisor Signature'}
-                                                        onSave={(data) => {
-                                                            setFormData({
-                                                                ...formData,
-                                                                signatures: {
-                                                                    ...formData.signatures,
-                                                                    [activeSignaturePad]: data
-                                                                }
-                                                            });
-                                                            setActiveSignaturePad(null);
-                                                        }}
-                                                        onCancel={() => setActiveSignaturePad(null)}
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 3. Labour Tab */}
-                                {activeTab === 'labour' && (
-                                    <div>
-                                        <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>👷 Labour Request</h4>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--spacing-lg)' }}>
-                                            {labourItems.map(item => (
-                                                <button key={item.id} type="button" onClick={() => handleAddLabour(item)} disabled={formData.isLocked} style={{ padding: '8px 14px', border: '1px solid var(--color-gray-200)', borderRadius: '6px', background: formData.labourItems.find(l => l.id === item.id) ? 'var(--color-primary)' : 'white', color: formData.labourItems.find(l => l.id === item.id) ? 'white' : 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>{item.name} (₹{item.rate})</button>
-                                            ))}
-                                        </div>
-                                        {formData.labourItems.length > 0 && (
-                                            <div style={{ background: 'var(--color-gray-100)', borderRadius: '8px', padding: 'var(--spacing-md)' }}>
-                                                <h5 style={{ margin: '0 0 12px 0' }}>Selected Labour Items</h5>
-                                                {formData.labourItems.map(item => (
-                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'white', borderRadius: '6px', marginBottom: '8px' }}>
-                                                        <span>{item.name}</span>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, labourItems: formData.labourItems.map(l => l.id === item.id ? { ...l, qty: parseInt(e.target.value) || 1 } : l) })} disabled={formData.isLocked} style={{ width: '60px', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-200)', textAlign: 'center' }} />
-                                                            <span style={{ fontWeight: 600 }}>₹{item.rate * item.qty}</span>
-                                                            <button type="button" onClick={() => handleRemoveLabour(item.id)} disabled={formData.isLocked} style={{ background: '#F44336', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' }}>×</button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                <div style={{ textAlign: 'right', fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '12px' }}>Labour Total: ₹{formData.labourItems.reduce((sum, l) => sum + (l.rate * l.qty), 0)}</div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* 4. Spare & Outside Tab */}
-                                {activeTab === 'spares' && (
-                                    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 'var(--spacing-lg)' }}>
-                                            {/* Spares Section */}
-                                            <div>
-                                                <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>🔧 Spare Parts</h4>
+                                                {/* Customer & Vehicle */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                                    <div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                            <h5 style={{ margin: 0, fontSize: '0.9rem' }}>Available Inventory</h5>
-                                                            <div style={{ position: 'relative', width: '150px' }}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <label style={labelStyle}>Select Customer *</label>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <div ref={customerSearchRef} style={{ flex: 1, position: 'relative' }}>
                                                                 <input
                                                                     type="text"
-                                                                    placeholder="Search spares..."
-                                                                    value={spareSearchTerm}
-                                                                    onChange={(e) => setSpareSearchTerm(e.target.value)}
-                                                                    style={{
-                                                                        width: '100%',
-                                                                        padding: '4px 8px 4px 24px',
-                                                                        fontSize: '0.75rem',
-                                                                        borderRadius: '4px',
-                                                                        border: '1px solid var(--color-gray-300)',
-                                                                        outline: 'none'
+                                                                    placeholder="Search Name or Phone..."
+                                                                    value={customerSearchTerm}
+                                                                    onChange={(e) => {
+                                                                        setCustomerSearchTerm(e.target.value);
+                                                                        setShowCustomerSearchDropdown(true);
                                                                     }}
+                                                                    onFocus={() => setShowCustomerSearchDropdown(true)}
+                                                                    onClick={() => {
+                                                                        if (selectedCustomer) {
+                                                                            setCustomerSearchTerm('');
+                                                                            setShowCustomerSearchDropdown(true);
+                                                                        }
+                                                                    }}
+                                                                    style={{ ...inputStyle, width: '100%' }}
                                                                 />
-                                                                <span style={{ position: 'absolute', left: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>🔍</span>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
-                                                            {spareItems
-                                                                .filter(item =>
-                                                                    item.name.toLowerCase().includes(spareSearchTerm.toLowerCase()) ||
-                                                                    (item.partNumber && item.partNumber.toLowerCase().includes(spareSearchTerm.toLowerCase()))
-                                                                )
-                                                                .map(item => (
-                                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
-                                                                        <div style={{ fontSize: '0.85rem' }}>
-                                                                            <div style={{ fontWeight: 500 }}>{item.name}</div>
-                                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate} • Stock: {item.stock}</div>
-                                                                        </div>
-                                                                        <button type="button" onClick={() => handleAddSpare(item)} disabled={formData.isLocked} style={{ padding: '4px 10px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
+                                                                {selectedCustomer && !showCustomerSearchDropdown && (
+                                                                    <div style={{ position: 'absolute', top: '50%', right: '30px', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)', pointerEvents: 'none' }}>
+                                                                        {selectedCustomer.name}
                                                                     </div>
-                                                                ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <h5 style={{ marginBottom: '10px', fontSize: '0.9rem' }}>Selected Parts ({formData.spareRequests.length})</h5>
-                                                        <div style={{ background: 'var(--color-gray-50)', border: '1px solid var(--color-gray-200)', borderRadius: '8px', padding: '10px', minHeight: '100px' }}>
-                                                            {formData.spareRequests.length === 0 ? (
-                                                                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '20px' }}>No parts selected</div>
-                                                            ) : (
-                                                                formData.spareRequests.map(item => (
-                                                                    <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-100)' }}>
-                                                                        <div style={{ fontSize: '0.8rem', flex: 1 }}>
-                                                                            <div style={{ fontWeight: 500 }}>{item.name}</div>
-                                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate * item.qty}</div>
-                                                                        </div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                            <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: parseInt(e.target.value) || 1 } : s) })} style={{ width: '40px', padding: '2px', textAlign: 'center', fontSize: '0.8rem' }} />
-                                                                            <button type="button" onClick={() => handleRemoveSpare(item.id)} style={{ color: '#F44336', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}>×</button>
-                                                                        </div>
+                                                                )}
+                                                                {showCustomerSearchDropdown && (
+                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
+                                                                        {customers
+                                                                            .filter(c =>
+                                                                                c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+                                                                                c.phone.includes(customerSearchTerm)
+                                                                            )
+                                                                            .map(c => (
+                                                                                <div
+                                                                                    key={c._id || c.id}
+                                                                                    onClick={() => {
+                                                                                        handleCustomerChange(c._id || c.id);
+                                                                                        setCustomerSearchTerm(c.name); // Keep selected name in view if needed, or clear it
+                                                                                        setShowCustomerSearchDropdown(false);
+                                                                                    }}
+                                                                                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--color-gray-100)', background: 'white', transition: 'background 0.2s' }}
+                                                                                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                                                                                    onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                                                                                >
+                                                                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</div>
+                                                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📞 {c.phone} | 🚗 {c.vehicleNo || 'N/A'}</div>
+                                                                                </div>
+                                                                            ))}
+                                                                        {customers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || c.phone.includes(customerSearchTerm)).length === 0 && (
+                                                                            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>No customers found</div>
+                                                                        )}
                                                                     </div>
-                                                                ))
-                                                            )}
-                                                            {formData.spareRequests.length > 0 && (
-                                                                <div style={{ borderTop: '1px solid var(--color-gray-200)', paddingTop: '8px', marginTop: '8px', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
-                                                                    Total: ₹{formData.spareRequests.reduce((sum, s) => sum + (s.rate * s.qty), 0)}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Outside Work Section */}
-                                            <div>
-                                                <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>🛠️ Outside Work</h4>
-                                                <div style={{ background: 'var(--color-gray-50)', border: '1px solid var(--color-gray-200)', borderRadius: '8px', padding: '16px' }}>
-                                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                                                        <input type="text" id="outside-work-name" placeholder="Work Name" style={{ ...inputStyle, padding: '8px' }} />
-                                                        <input type="number" id="outside-work-rate" placeholder="Cost" style={{ ...inputStyle, width: '80px', padding: '8px' }} />
-                                                        <button type="button" onClick={() => {
-                                                            const name = document.getElementById('outside-work-name').value;
-                                                            const rate = parseInt(document.getElementById('outside-work-rate').value);
-                                                            if (name && rate) {
-                                                                setFormData({ ...formData, outsideWork: [...formData.outsideWork, { id: Date.now(), name, rate }] });
-                                                                document.getElementById('outside-work-name').value = '';
-                                                                document.getElementById('outside-work-rate').value = '';
-                                                            }
-                                                        }} style={{ padding: '8px 16px', background: '#FF9800', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Add</button>
-                                                    </div>
-
-                                                    {formData.outsideWork.map(work => (
-                                                        <div key={work.id || work._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid var(--color-gray-200)', fontSize: '0.85rem', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
-                                                            <span>{work.name}</span>
-                                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                                <span style={{ fontWeight: 600, marginRight: '10px' }}>₹{work.rate}</span>
-                                                                <button type="button" onClick={() => setFormData({ ...formData, outsideWork: formData.outsideWork.filter(w => w.id !== work.id) })} style={{ color: '#F44336', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>×</button>
+                                                                )}
                                                             </div>
+                                                            <button type="button" onClick={() => setShowAddCustomerModal(true)} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>+ New</button>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 6. Next Service Advice Tab */}
-                                {activeTab === 'next_service' && (
-                                    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
-                                                <span style={{ fontSize: '1.5rem' }}>🗓️</span>
-                                                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Next Service Recommendations</h4>
-                                            </div>
-
-                                            <div style={{ background: 'var(--color-gray-50)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray-200)' }}>
-                                                <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                                                    <label style={labelStyle}>📢 Advisor's Advice</label>
-                                                    <textarea value={formData.nextService.advice} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, advice: e.target.value } })} placeholder="e.g. Engine oil replacement needed in next 3000km, Chain slack adjustment recommended..." rows={4} style={inputStyle}></textarea>
-                                                </div>
-
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                                                    <div>
-                                                        <label style={labelStyle}>📅 Next Service Due Date</label>
-                                                        <input type="date" value={formData.nextService.dueDate} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, dueDate: e.target.value } })} style={inputStyle} />
+                                                        {selectedCustomer && (
+                                                            <div style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '8px', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                                                                <strong>Selected:</strong> {selectedCustomer.name} ({selectedCustomer.phone})
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div>
-                                                        <label style={labelStyle}>🏍️ Next Service Odometer (km)</label>
-                                                        <input type="number" value={formData.nextService.dueOdometer} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, dueOdometer: e.target.value } })} placeholder="e.g. 15500" style={inputStyle} />
+                                                        <label style={labelStyle}>Select Vehicle *</label>
+                                                        <select value={String(formData.vehicleId)} onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })} required style={inputStyle}>
+                                                            <option value="">Select Vehicle</option>
+                                                            {selectedCustomer?.vehicles?.map(v => <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>)}
+                                                            {/* Fallback for when vehicles are in a separate collection */}
+                                                            {vehiclesList?.filter(v => String(v.customerId?._id || v.customerId) === String(formData.customerId)).map(v => (
+                                                                <option key={String(v._id || v.id)} value={String(v._id || v.id)}>{v.brand} {v.model} ({v.registrationNo})</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
 
-                                {/* 7. Delivery Tab */}
-                                {activeTab === 'delivery' && (
-                                    <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
-                                                <span style={{ fontSize: '1.5rem' }}>🏁</span>
-                                                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Vehicle Handover & Delivery</h4>
-                                            </div>
+                                                {/* Service Type & Technician */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                                                    <div>
+                                                        <label style={labelStyle}>Service Type *</label>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <select value={formData.serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)} required disabled={formData.isLocked} style={{ ...inputStyle, flex: 1 }}>
+                                                                <option value="">Select Service</option>
+                                                                {serviceTypesList.length > 0 ? (
+                                                                    serviceTypesList.map((s) => <option key={String(s._id || s.id)} value={s.name}>{s.name}</option>)
+                                                                ) : (
+                                                                    serviceTypes.map((s) => <option key={s} value={s}>{s}</option>)
+                                                                )}
+                                                            </select>
+                                                            <button type="button" onClick={() => setShowAddServiceTypeModal(true)} disabled={formData.isLocked} style={{ padding: '10px 16px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: formData.isLocked ? 'not-allowed' : 'pointer', fontWeight: 600, whiteSpace: 'nowrap', opacity: formData.isLocked ? 0.7 : 1 }}>+ New</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label style={labelStyle}>Allocate Technician</label>
+                                                        <select value={String(formData.technicianId)} onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })} style={inputStyle}>
+                                                            <option value="">Select Technician</option>
+                                                            {techniciansList.map(t => <option key={String(t._id || t.id)} value={String(t._id || t.id)}>{t.name} ({t.role})</option>)}
+                                                        </select>
+                                                    </div>
+                                                </div>
 
-                                            <div style={{ background: 'var(--color-gray-50)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray-200)' }}>
-                                                <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                                                    <label style={labelStyle}>🚚 Delivery Type</label>
-                                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                                        {['Pickup (Self)', 'Home Delivery'].map(type => (
+                                                {/* Battery Number & Odometer */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                                                    <div><label style={labelStyle}>🔋 Battery Number</label><input type="text" value={formData.batteryNo} onChange={(e) => setFormData({ ...formData, batteryNo: e.target.value })} placeholder="e.g. BAT-2023-001" disabled={formData.isLocked} style={inputStyle} /></div>
+                                                    <div><label style={labelStyle}>Odometer (km) *</label><input type="number" value={formData.odometer} onChange={(e) => handleOdometerChange(e.target.value)} placeholder="e.g. 12500" disabled={formData.isLocked} style={inputStyle} /></div>
+                                                    <div><label style={labelStyle}>Oil Level</label><select value={formData.oilLevel} onChange={(e) => setFormData({ ...formData, oilLevel: e.target.value })} disabled={formData.isLocked} style={inputStyle}><option>Full</option><option>Normal</option><option>Low</option><option>Empty</option></select></div>
+                                                </div>
+
+                                                {/* Fuel Level Indicator */}
+                                                <div style={{ marginBottom: 'var(--spacing-md)', padding: 'var(--spacing-md)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)' }}>
+                                                    <label style={{ ...labelStyle, marginBottom: '12px' }}>⛽ Fuel Level</label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                                                        {/* Fuel Gauge Visual */}
+                                                        <div style={{
+                                                            flex: 1,
+                                                            height: '24px',
+                                                            background: 'var(--color-gray-200)',
+                                                            borderRadius: '12px',
+                                                            overflow: 'hidden',
+                                                            position: 'relative',
+                                                            border: '2px solid var(--color-gray-300)',
+                                                        }}>
+                                                            <div style={{
+                                                                width: `${formData.fuelLevel}%`,
+                                                                height: '100%',
+                                                                background: `linear-gradient(90deg, 
+                                                            ${formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : formData.fuelLevel <= 75 ? '#FFC107' : '#4CAF50'} 0%,
+                                                            ${formData.fuelLevel <= 25 ? '#EF5350' : formData.fuelLevel <= 50 ? '#FFB74D' : formData.fuelLevel <= 75 ? '#FFD54F' : '#66BB6A'} 100%)`,
+                                                                borderRadius: '10px',
+                                                                transition: 'width 0.3s ease, background 0.3s ease',
+                                                                boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3)',
+                                                            }} />
+                                                            {/* Gauge markers */}
+                                                            <div style={{ position: 'absolute', top: 0, left: '25%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
+                                                            <div style={{ position: 'absolute', top: 0, left: '50%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
+                                                            <div style={{ position: 'absolute', top: 0, left: '75%', width: '1px', height: '100%', background: 'rgba(0,0,0,0.15)' }} />
+                                                        </div>
+                                                        {/* Fuel Level Value */}
+                                                        <div style={{
+                                                            minWidth: '60px',
+                                                            padding: '6px 12px',
+                                                            background: formData.fuelLevel <= 25 ? 'rgba(244, 67, 54, 0.1)' : formData.fuelLevel <= 50 ? 'rgba(255, 152, 0, 0.1)' : 'rgba(76, 175, 80, 0.1)',
+                                                            color: formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : '#4CAF50',
+                                                            borderRadius: '8px',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.9rem',
+                                                            textAlign: 'center',
+                                                        }}>
+                                                            {formData.fuelLevel}%
+                                                        </div>
+                                                    </div>
+                                                    {/* Slider Input */}
+                                                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: '#F44336' }}>E</span>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="100"
+                                                            value={formData.fuelLevel}
+                                                            onChange={(e) => setFormData({ ...formData, fuelLevel: parseInt(e.target.value) })}
+                                                            disabled={formData.isLocked}
+                                                            style={{
+                                                                flex: 1,
+                                                                height: '8px',
+                                                                cursor: formData.isLocked ? 'not-allowed' : 'pointer',
+                                                                accentColor: formData.fuelLevel <= 25 ? '#F44336' : formData.fuelLevel <= 50 ? '#FF9800' : '#4CAF50',
+                                                            }}
+                                                        />
+                                                        <span style={{ fontSize: '0.8rem', color: '#4CAF50' }}>F</span>
+                                                    </div>
+                                                    {/* Quick Select Buttons */}
+                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                                        {[0, 25, 50, 75, 100].map(level => (
                                                             <button
-                                                                key={type}
+                                                                key={level}
                                                                 type="button"
-                                                                onClick={() => setFormData({ ...formData, delivery: { ...formData.delivery, type: type.includes('Pickup') ? 'pickup' : 'delivery' } })}
+                                                                onClick={() => !formData.isLocked && setFormData({ ...formData, fuelLevel: level })}
+                                                                disabled={formData.isLocked}
                                                                 style={{
-                                                                    flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--color-gray-300)', cursor: 'pointer',
-                                                                    background: (type.includes('Pickup') ? formData.delivery.type === 'pickup' : formData.delivery.type === 'delivery') ? 'var(--color-primary)' : 'white',
-                                                                    color: (type.includes('Pickup') ? formData.delivery.type === 'pickup' : formData.delivery.type === 'delivery') ? 'white' : 'var(--text-secondary)',
-                                                                    fontWeight: 600
+                                                                    flex: 1,
+                                                                    padding: '6px',
+                                                                    border: formData.fuelLevel === level ? 'none' : '1px solid var(--color-gray-200)',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 500,
+                                                                    cursor: formData.isLocked ? 'not-allowed' : 'pointer',
+                                                                    background: formData.fuelLevel === level
+                                                                        ? (level <= 25 ? '#F44336' : level <= 50 ? '#FF9800' : '#4CAF50')
+                                                                        : 'white',
+                                                                    color: formData.fuelLevel === level ? 'white' : 'var(--text-secondary)',
+                                                                    transition: 'all 0.2s',
                                                                 }}
                                                             >
-                                                                {type}
+                                                                {level === 0 ? 'Empty' : level === 100 ? 'Full' : `${level}%`}
                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>
+                                            </div>
+                                        )}
 
-                                                {formData.delivery.type === 'delivery' && (
-                                                    <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                                                        <label style={labelStyle}>🏠 Delivery Address</label>
-                                                        <textarea value={formData.delivery.address} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, address: e.target.value } })} placeholder="Enter delivery address..." rows={2} style={inputStyle}></textarea>
-                                                    </div>
-                                                )}
+                                        {/* 2. Inspection Tab */}
+                                        {activeTab === 'inspection' && (
+                                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
+                                                    <span style={{ fontSize: '1.5rem' }}>🔍</span>
+                                                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Technical Inspection Checklist</h4>
+                                                </div>
 
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                                                    <div>
-                                                        <label style={labelStyle}>📄 Delivery Challan No.</label>
-                                                        <input type="text" value={formData.delivery.challanNo} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, challanNo: e.target.value } })} placeholder="e.g. DC-789" style={inputStyle} />
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
+                                                    {Object.keys(formData.inspection || {}).map((item) => (
+                                                        <div key={item} style={{ padding: 'var(--spacing-md)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                            <label style={{ ...labelStyle, textTransform: 'capitalize', color: 'var(--color-primary)' }}>
+                                                                {item.replace(/([A-Z])/g, ' $1').trim()}
+                                                            </label>
+                                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                                {['Low', 'Normal', 'High', 'Good', 'Bad', 'Functional', 'Broken', 'Clean', 'Dirty'].filter(v =>
+                                                                    (item.includes('Oil') || item.includes('Fluid') || item.includes('Coolant')) ? ['Low', 'Normal', 'High'].includes(v) :
+                                                                        (item.includes('Pads') || item.includes('Tires') || item.includes('Battery')) ? ['Good', 'Bad'].includes(v) :
+                                                                            item.includes('Lights') ? ['Functional', 'Broken'].includes(v) :
+                                                                                ['Clean', 'Dirty'].includes(v)
+                                                                ).map(val => (
+                                                                    <button
+                                                                        key={val}
+                                                                        type="button"
+                                                                        onClick={() => setFormData({ ...formData, inspection: { ...formData.inspection, [item]: val } })}
+                                                                        style={{
+                                                                            flex: 1, padding: '6px 4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-gray-300)', cursor: 'pointer',
+                                                                            background: formData.inspection[item] === val ? 'var(--color-primary)' : 'white',
+                                                                            color: formData.inspection[item] === val ? 'white' : 'var(--text-secondary)',
+                                                                            fontWeight: formData.inspection[item] === val ? 600 : 400
+                                                                        }}
+                                                                    >
+                                                                        {val}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div style={{ borderTop: '2px dashed var(--color-gray-200)', marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-lg)' }}>
+                                                    <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)' }}>📝 Intake Observations & Photos</h4>
+
+                                                    {/* Customer Voice with Searchable Dropdown */}
+                                                    <div style={{ marginBottom: 'var(--spacing-lg)' }} ref={customerVoiceRef}>
+                                                        <label style={{ ...labelStyle, marginBottom: '12px' }}>🗣️ Customer Voice (Complaint/Request)</label>
+
+                                                        {/* Selected items display */}
+                                                        {formData.customerVoice && (
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                                                                {formData.customerVoice.split(', ').filter(v => v).map((item, idx) => (
+                                                                    <span key={idx} style={{
+                                                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                        padding: '4px 10px', background: 'rgba(156, 39, 176, 0.15)',
+                                                                        border: '1px solid #9C27B0', borderRadius: '16px',
+                                                                        fontSize: '0.8rem', color: '#9C27B0',
+                                                                    }}>
+                                                                        {item}
+                                                                        {!formData.isLocked && (
+                                                                            <button type="button" onClick={() => {
+                                                                                const items = formData.customerVoice.split(', ').filter(v => v !== item);
+                                                                                setFormData({ ...formData, customerVoice: items.join(', ') });
+                                                                            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#9C27B0', padding: 0 }}>×</button>
+                                                                        )}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Search and Category Filter */}
+                                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
+                                                                    <span style={{ padding: '10px', color: 'var(--text-muted)' }}>🔍</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Search complaints..."
+                                                                        value={customerVoiceSearch}
+                                                                        onChange={(e) => { setCustomerVoiceSearch(e.target.value); setShowCustomerVoiceDropdown(true); }}
+                                                                        onFocus={() => setShowCustomerVoiceDropdown(true)}
+                                                                        disabled={formData.isLocked}
+                                                                        style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 10px 10px 0', fontSize: '0.9rem' }}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Dropdown */}
+                                                                {showCustomerVoiceDropdown && !formData.isLocked && (
+                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
+                                                                        {masterCustomerVoice
+                                                                            .filter(opt => opt.isActive)
+                                                                            .filter(opt => customerVoiceCategory === 'All' || opt.category === customerVoiceCategory)
+                                                                            .filter(opt => opt.name.toLowerCase().includes(customerVoiceSearch.toLowerCase()) || opt.description?.toLowerCase().includes(customerVoiceSearch.toLowerCase()))
+                                                                            .map(opt => (
+                                                                                <div
+                                                                                    key={opt.id}
+                                                                                    onClick={() => {
+                                                                                        const current = formData.customerVoice || '';
+                                                                                        if (!current.includes(opt.name)) {
+                                                                                            const newValue = current ? `${current}, ${opt.name}` : opt.name;
+                                                                                            setFormData({ ...formData, customerVoice: newValue });
+                                                                                        }
+                                                                                        setCustomerVoiceSearch('');
+                                                                                        setShowCustomerVoiceDropdown(false);
+                                                                                    }}
+                                                                                    style={{
+                                                                                        padding: '10px 14px', cursor: 'pointer',
+                                                                                        borderBottom: '1px solid var(--color-gray-100)',
+                                                                                        background: formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.08)' : 'white',
+                                                                                    }}
+                                                                                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(156, 39, 176, 0.1)'}
+                                                                                    onMouseOut={(e) => e.currentTarget.style.background = formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.08)' : 'white'}
+                                                                                >
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                        <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{opt.name}</span>
+                                                                                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--color-gray-100)', borderRadius: '10px', color: 'var(--text-muted)' }}>{opt.category}</span>
+                                                                                    </div>
+                                                                                    {opt.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{opt.description}</div>}
+                                                                                </div>
+                                                                            ))}
+                                                                        {masterCustomerVoice.filter(opt => opt.isActive && (customerVoiceCategory === 'All' || opt.category === customerVoiceCategory) && opt.name.toLowerCase().includes(customerVoiceSearch.toLowerCase())).length === 0 && (
+                                                                            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No complaints found</div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Category Filter */}
+                                                            <select
+                                                                value={customerVoiceCategory}
+                                                                onChange={(e) => setCustomerVoiceCategory(e.target.value)}
+                                                                disabled={formData.isLocked}
+                                                                style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--color-gray-200)', fontSize: '0.85rem', minWidth: '120px', background: 'white' }}
+                                                            >
+                                                                {customerVoiceCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat === 'All' ? '📋 All Categories' : cat}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Quick buttons for common options */}
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                                            {masterCustomerVoice.filter(opt => opt.isActive).slice(0, 8).map(opt => (
+                                                                <button
+                                                                    key={opt.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (!formData.isLocked) {
+                                                                            const current = formData.customerVoice || '';
+                                                                            if (!current.includes(opt.name)) {
+                                                                                const newValue = current ? `${current}, ${opt.name}` : opt.name;
+                                                                                setFormData({ ...formData, customerVoice: newValue });
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    disabled={formData.isLocked}
+                                                                    style={{
+                                                                        padding: '4px 10px', fontSize: '0.75rem',
+                                                                        background: formData.customerVoice?.includes(opt.name) ? 'rgba(156, 39, 176, 0.15)' : 'var(--color-gray-100)',
+                                                                        border: formData.customerVoice?.includes(opt.name) ? '1px solid #9C27B0' : '1px solid var(--color-gray-300)',
+                                                                        borderRadius: '12px', cursor: formData.isLocked ? 'not-allowed' : 'pointer',
+                                                                        color: formData.customerVoice?.includes(opt.name) ? '#9C27B0' : 'var(--text-primary)',
+                                                                        transition: 'all 0.2s',
+                                                                    }}
+                                                                >{opt.name}</button>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Custom text input */}
+                                                        <textarea value={formData.customerVoice} onChange={(e) => setFormData({ ...formData, customerVoice: e.target.value })} rows={2} placeholder="Selected complaints appear here. You can also type custom complaints..." disabled={formData.isLocked} style={{ ...inputStyle, resize: 'vertical' }} />
                                                     </div>
-                                                    <div>
-                                                        <label style={labelStyle}>👤 Handed Over To</label>
-                                                        <input type="text" value={formData.delivery.personName} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, personName: e.target.value } })} placeholder="Person Name" style={inputStyle} />
+
+                                                    {/* Advisor Voice with Searchable Dropdown */}
+                                                    <div style={{ marginBottom: 'var(--spacing-md)' }} ref={advisorVoiceRef}>
+                                                        <label style={{ ...labelStyle, marginBottom: '12px' }}>👨‍💼 Advisor Voice (Observations/Notes)</label>
+
+                                                        {/* Selected items display */}
+                                                        {formData.advisorVoice && (
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                                                                {(formData.advisorVoice || '').split(', ').filter(v => v).map((item, idx) => (
+                                                                    <span key={idx} style={{
+                                                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                        padding: '4px 10px', background: 'rgba(0, 188, 212, 0.15)',
+                                                                        border: '1px solid #00BCD4', borderRadius: '16px',
+                                                                        fontSize: '0.8rem', color: '#00BCD4',
+                                                                    }}>
+                                                                        {item}
+                                                                        {!formData.isLocked && (
+                                                                            <button type="button" onClick={() => {
+                                                                                const items = (formData.advisorVoice || '').split(', ').filter(v => v !== item);
+                                                                                setFormData({ ...formData, advisorVoice: items.join(', ') });
+                                                                            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#00BCD4', padding: 0 }}>×</button>
+                                                                        )}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Search and Category Filter */}
+                                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
+                                                                    <span style={{ padding: '10px', color: 'var(--text-muted)' }}>🔍</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Search observations..."
+                                                                        value={advisorVoiceSearch}
+                                                                        onChange={(e) => { setAdvisorVoiceSearch(e.target.value); setShowAdvisorVoiceDropdown(true); }}
+                                                                        onFocus={() => setShowAdvisorVoiceDropdown(true)}
+                                                                        disabled={formData.isLocked}
+                                                                        style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 10px 10px 0', fontSize: '0.9rem' }}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Dropdown */}
+                                                                {showAdvisorVoiceDropdown && !formData.isLocked && (
+                                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: '250px', overflow: 'auto', marginTop: '4px' }}>
+                                                                        {masterAdvisorVoice
+                                                                            .filter(opt => opt.isActive)
+                                                                            .filter(opt => advisorVoiceCategory === 'All' || opt.category === advisorVoiceCategory)
+                                                                            .filter(opt => opt.name.toLowerCase().includes(advisorVoiceSearch.toLowerCase()) || opt.description?.toLowerCase().includes(advisorVoiceSearch.toLowerCase()))
+                                                                            .map(opt => (
+                                                                                <div
+                                                                                    key={opt.id}
+                                                                                    onClick={() => {
+                                                                                        const current = formData.advisorVoice || '';
+                                                                                        if (!current.includes(opt.name)) {
+                                                                                            const newValue = current ? `${current}, ${opt.name}` : opt.name;
+                                                                                            setFormData({ ...formData, advisorVoice: newValue });
+                                                                                        }
+                                                                                        setAdvisorVoiceSearch('');
+                                                                                        setShowAdvisorVoiceDropdown(false);
+                                                                                    }}
+                                                                                    style={{
+                                                                                        padding: '10px 14px', cursor: 'pointer',
+                                                                                        borderBottom: '1px solid var(--color-gray-100)',
+                                                                                        background: formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.08)' : 'white',
+                                                                                    }}
+                                                                                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 188, 212, 0.1)'}
+                                                                                    onMouseOut={(e) => e.currentTarget.style.background = formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.08)' : 'white'}
+                                                                                >
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                        <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{opt.name}</span>
+                                                                                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--color-gray-100)', borderRadius: '10px', color: 'var(--text-muted)' }}>{opt.category}</span>
+                                                                                    </div>
+                                                                                    {opt.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{opt.description}</div>}
+                                                                                </div>
+                                                                            ))}
+                                                                        {masterAdvisorVoice.filter(opt => opt.isActive && (advisorVoiceCategory === 'All' || opt.category === advisorVoiceCategory) && opt.name.toLowerCase().includes(advisorVoiceSearch.toLowerCase())).length === 0 && (
+                                                                            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No observations found</div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Category Filter */}
+                                                            <select
+                                                                value={advisorVoiceCategory}
+                                                                onChange={(e) => setAdvisorVoiceCategory(e.target.value)}
+                                                                disabled={formData.isLocked}
+                                                                style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--color-gray-200)', fontSize: '0.85rem', minWidth: '120px', background: 'white' }}
+                                                            >
+                                                                {advisorVoiceCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat === 'All' ? '📋 All Categories' : cat}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Quick buttons for common options */}
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                                            {masterAdvisorVoice.filter(opt => opt.isActive).slice(0, 8).map(opt => (
+                                                                <button
+                                                                    key={opt.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (!formData.isLocked) {
+                                                                            const current = formData.advisorVoice || '';
+                                                                            if (!current.includes(opt.name)) {
+                                                                                const newValue = current ? `${current}, ${opt.name}` : opt.name;
+                                                                                setFormData({ ...formData, advisorVoice: newValue });
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    disabled={formData.isLocked}
+                                                                    style={{
+                                                                        padding: '4px 10px', fontSize: '0.75rem',
+                                                                        background: formData.advisorVoice?.includes(opt.name) ? 'rgba(0, 188, 212, 0.15)' : 'var(--color-gray-100)',
+                                                                        border: formData.advisorVoice?.includes(opt.name) ? '1px solid #00BCD4' : '1px solid var(--color-gray-300)',
+                                                                        borderRadius: '12px', cursor: formData.isLocked ? 'not-allowed' : 'pointer',
+                                                                        color: formData.advisorVoice?.includes(opt.name) ? '#00BCD4' : 'var(--text-primary)',
+                                                                        transition: 'all 0.2s',
+                                                                    }}
+                                                                >{opt.name}</button>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Custom text input */}
+                                                        <textarea value={formData.advisorVoice || ''} onChange={(e) => setFormData({ ...formData, advisorVoice: e.target.value })} rows={2} placeholder="Selected observations appear here. You can also type custom notes..." disabled={formData.isLocked} style={{ ...inputStyle, resize: 'vertical' }} />
+                                                    </div>
+
+                                                    {/* Vehicle Photos */}
+                                                    <div style={{ marginTop: 'var(--spacing-lg)', padding: 'var(--spacing-md)', background: 'rgba(33, 150, 243, 0.05)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(33, 150, 243, 0.2)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                                                            <label style={{ ...labelStyle, margin: 0, fontSize: '1rem' }}>📸 Vehicle Photos <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>({vehiclePhotos.length}/6)</span></label>
+                                                            {vehiclePhotos.length > 0 && (
+                                                                <button type="button" onClick={() => openPhotoViewer(0)} style={{ padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}>👀 View All</button>
+                                                            )}
+                                                        </div>
+                                                        {/* Photo Upload/Capture Options */}
+                                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 'var(--spacing-md)' }}>
+                                                            <button type="button" onClick={() => vehiclePhotoInputRef.current?.click()} disabled={formData.isLocked || vehiclePhotos.length >= 6} style={{ padding: '10px 16px', background: formData.isLocked || vehiclePhotos.length >= 6 ? 'var(--color-gray-300)' : '#2196F3', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: formData.isLocked || vehiclePhotos.length >= 6 ? 'not-allowed' : 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>📁 Upload</button>
+                                                            <button type="button" onClick={() => startCameraCapture()} disabled={formData.isLocked || vehiclePhotos.length >= 6} style={{ padding: '10px 16px', background: formData.isLocked || vehiclePhotos.length >= 6 ? 'var(--color-gray-300)' : '#4CAF50', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: formData.isLocked || vehiclePhotos.length >= 6 ? 'not-allowed' : 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>📷 Camera</button>
+                                                            <input ref={vehiclePhotoInputRef} type="file" accept="image/*" onChange={handleVehiclePhotoUpload} style={{ display: 'none' }} />
+                                                        </div>
+
+                                                        {/* Photo Grid */}
+                                                        {vehiclePhotos.length > 0 && (
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                                                {vehiclePhotos.map((photo, index) => (
+                                                                    <div key={index} onClick={() => openPhotoViewer(index)} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '2px solid var(--color-gray-200)' }}>
+                                                                        <img src={photo.url} alt={photo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                        {!formData.isLocked && (
+                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); removeVehiclePhoto(index); }} style={{ position: 'absolute', top: '4px', right: '4px', width: '24px', height: '24px', background: 'rgba(244, 67, 54, 0.9)', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
+                                        )}
+
+                                        {/* 5. Estimate & Sign Tab */}
+                                        {activeTab === 'estimate_sign' && (
+                                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+                                                    {/* Estimate Summary */}
+                                                    <div>
+                                                        <div style={{ padding: 'var(--spacing-md)', background: 'var(--color-gray-100)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)' }}>
+                                                            <label style={labelStyle}>💰 Estimated Amount (₹) *</label>
+                                                            <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>₹{calculateEstimate()}</div>
+                                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Auto-calculated from Labour + Spares</div>
+                                                        </div>
+
+                                                        <div style={{ padding: 'var(--spacing-md)', background: 'rgba(76, 175, 80, 0.1)', borderRadius: 'var(--radius-md)', border: '1px solid #4CAF50' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Subtotal</span><span style={{ fontWeight: 600 }}>₹{calculateEstimate()}</span></div>
+
+                                                            <div style={{ marginTop: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                                                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                                                                    <div>
+                                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💰 Advance Amount (₹)</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={formData.advanceAmount}
+                                                                            onChange={(e) => setFormData({ ...formData, advanceAmount: parseFloat(e.target.value) || 0 })}
+                                                                            placeholder="0.00"
+                                                                            disabled={formData.isLocked}
+                                                                            style={{ ...inputStyle, padding: '8px' }}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px', textAlign: 'left' }}>💳 Payment Mode</label>
+                                                                        <select
+                                                                            value={formData.advanceMethod}
+                                                                            onChange={(e) => setFormData({ ...formData, advanceMethod: e.target.value })}
+                                                                            disabled={formData.isLocked}
+                                                                            style={{ ...inputStyle, padding: '8px' }}
+                                                                        >
+                                                                            <option value="">Select Mode</option>
+                                                                            <option value="Cash">Cash</option>
+                                                                            <option value="Card">Card</option>
+                                                                            <option value="UPI">UPI</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #4CAF50', paddingTop: '12px', marginTop: '4px', fontSize: '1.2rem', fontWeight: 700, color: '#2E7D32' }}>
+                                                                <span>Balance Due</span>
+                                                                <span>₹{Math.max(0, calculateEstimate() - (formData.advanceAmount || 0))}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style={{ marginTop: 'var(--spacing-lg)', display: 'flex', gap: '8px' }}>
+                                                            <button type="button" onClick={() => handleSendEstimate('whatsapp')} style={{ flex: 1, padding: '12px', background: '#25D366', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                                <span>📱 Send WhatsApp</span>
+                                                            </button>
+                                                            <button type="button" onClick={() => window.print()} style={{ flex: 1, padding: '12px', background: 'var(--color-gray-800)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                                <span>🖨️ Print Estimate</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Signatures */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                                                        <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
+                                                            <label style={labelStyle}>✍️ Customer Digital Signature</label>
+                                                            <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('customer')}>
+                                                                {formData.signatures.customer ? <img src={formData.signatures.customer} alt="Customer" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Customer)</span>}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ background: 'white', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)' }}>
+                                                            <label style={labelStyle}>✍️ Advisor/Technician Signature</label>
+                                                            <div style={{ height: '120px', background: 'var(--color-gray-50)', border: '2px dashed var(--color-gray-300)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }} onClick={() => !formData.isLocked && setActiveSignaturePad('advisor')}>
+                                                                {formData.signatures.advisor ? <img src={formData.signatures.advisor} alt="Advisor" style={{ maxHeight: '100%' }} /> : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Click to sign (Advisor)</span>}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Signature Pad Modal */}
+                                                        {activeSignaturePad && (
+                                                            <SignaturePad
+                                                                title={activeSignaturePad === 'customer' ? 'Customer Signature' : 'Advisor Signature'}
+                                                                onSave={(data) => {
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        signatures: {
+                                                                            ...formData.signatures,
+                                                                            [activeSignaturePad]: data
+                                                                        }
+                                                                    });
+                                                                    setActiveSignaturePad(null);
+                                                                }}
+                                                                onCancel={() => setActiveSignaturePad(null)}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 3. Labour Tab */}
+                                        {activeTab === 'labour' && (
+                                            <div>
+                                                <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>👷 Labour Request</h4>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--spacing-lg)' }}>
+                                                    {labourItems.map(item => (
+                                                        <button key={item.id} type="button" onClick={() => handleAddLabour(item)} disabled={formData.isLocked} style={{ padding: '8px 14px', border: '1px solid var(--color-gray-200)', borderRadius: '6px', background: formData.labourItems.find(l => l.id === item.id) ? 'var(--color-primary)' : 'white', color: formData.labourItems.find(l => l.id === item.id) ? 'white' : 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>{item.name} (₹{item.rate})</button>
+                                                    ))}
+                                                </div>
+                                                {formData.labourItems.length > 0 && (
+                                                    <div style={{ background: 'var(--color-gray-100)', borderRadius: '8px', padding: 'var(--spacing-md)' }}>
+                                                        <h5 style={{ margin: '0 0 12px 0' }}>Selected Labour Items</h5>
+                                                        {formData.labourItems.map(item => (
+                                                            <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'white', borderRadius: '6px', marginBottom: '8px' }}>
+                                                                <span>{item.name}</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                    <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, labourItems: formData.labourItems.map(l => l.id === item.id ? { ...l, qty: parseInt(e.target.value) || 1 } : l) })} disabled={formData.isLocked} style={{ width: '60px', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-200)', textAlign: 'center' }} />
+                                                                    <span style={{ fontWeight: 600 }}>₹{item.rate * item.qty}</span>
+                                                                    <button type="button" onClick={() => handleRemoveLabour(item.id)} disabled={formData.isLocked} style={{ background: '#F44336', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' }}>×</button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        <div style={{ textAlign: 'right', fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '12px' }}>Labour Total: ₹{formData.labourItems.reduce((sum, l) => sum + (l.rate * l.qty), 0)}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* 4. Spare & Outside Tab */}
+                                        {activeTab === 'spares' && (
+                                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 'var(--spacing-lg)' }}>
+                                                    {/* Spares Section */}
+                                                    <div>
+                                                        <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>🔧 Spare Parts</h4>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                                                            <div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                                    <h5 style={{ margin: 0, fontSize: '0.9rem' }}>Available Inventory</h5>
+                                                                    <div style={{ position: 'relative', width: '150px' }}>
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Search spares..."
+                                                                            value={spareSearchTerm}
+                                                                            onChange={(e) => setSpareSearchTerm(e.target.value)}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                padding: '4px 8px 4px 24px',
+                                                                                fontSize: '0.75rem',
+                                                                                borderRadius: '4px',
+                                                                                border: '1px solid var(--color-gray-300)',
+                                                                                outline: 'none'
+                                                                            }}
+                                                                        />
+                                                                        <span style={{ position: 'absolute', left: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>🔍</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: '8px' }}>
+                                                                    {spareItems
+                                                                        .filter(item =>
+                                                                            item.name.toLowerCase().includes(spareSearchTerm.toLowerCase()) ||
+                                                                            (item.partCode && item.partCode.toLowerCase().includes(spareSearchTerm.toLowerCase()))
+                                                                        )
+                                                                        .map(item => (
+                                                                            <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid var(--color-gray-100)', background: 'white' }}>
+                                                                                <div style={{ fontSize: '0.85rem' }}>
+                                                                                    <div style={{ fontWeight: 500 }}>{item.name}</div>
+                                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate} • Stock: {item.stock}</div>
+                                                                                </div>
+                                                                                <button type="button" onClick={() => handleAddSpare(item)} disabled={formData.isLocked} style={{ padding: '4px 10px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
+                                                                            </div>
+                                                                        ))}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <h5 style={{ marginBottom: '10px', fontSize: '0.9rem' }}>Selected Parts ({formData.spareRequests.length})</h5>
+                                                                <div style={{ background: 'var(--color-gray-50)', border: '1px solid var(--color-gray-200)', borderRadius: '8px', padding: '10px', minHeight: '100px' }}>
+                                                                    {formData.spareRequests.length === 0 ? (
+                                                                        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '20px' }}>No parts selected</div>
+                                                                    ) : (
+                                                                        formData.spareRequests.map(item => (
+                                                                            <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-100)' }}>
+                                                                                <div style={{ fontSize: '0.8rem', flex: 1 }}>
+                                                                                    <div style={{ fontWeight: 500 }}>{item.name}</div>
+                                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate * item.qty}</div>
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                    <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: parseInt(e.target.value) || 1 } : s) })} style={{ width: '40px', padding: '2px', textAlign: 'center', fontSize: '0.8rem' }} />
+                                                                                    <button type="button" onClick={() => handleRemoveSpare(item.id)} style={{ color: '#F44336', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}>×</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))
+                                                                    )}
+                                                                    {formData.spareRequests.length > 0 && (
+                                                                        <div style={{ borderTop: '1px solid var(--color-gray-200)', paddingTop: '8px', marginTop: '8px', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
+                                                                            Total: ₹{formData.spareRequests.reduce((sum, s) => sum + (s.rate * s.qty), 0)}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Outside Work Section */}
+                                                    <div>
+                                                        <h4 style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', fontWeight: 600 }}>🛠️ Outside Work</h4>
+                                                        <div style={{ background: 'var(--color-gray-50)', border: '1px solid var(--color-gray-200)', borderRadius: '8px', padding: '16px' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                                                <input type="text" id="outside-work-name" placeholder="Work Name" style={{ ...inputStyle, padding: '8px' }} />
+                                                                <input type="number" id="outside-work-rate" placeholder="Cost" style={{ ...inputStyle, width: '80px', padding: '8px' }} />
+                                                                <button type="button" onClick={() => {
+                                                                    const name = document.getElementById('outside-work-name').value;
+                                                                    const rate = parseInt(document.getElementById('outside-work-rate').value);
+                                                                    if (name && rate) {
+                                                                        setFormData({ ...formData, outsideWork: [...formData.outsideWork, { id: Date.now(), name, rate }] });
+                                                                        document.getElementById('outside-work-name').value = '';
+                                                                        document.getElementById('outside-work-rate').value = '';
+                                                                    }
+                                                                }} style={{ padding: '8px 16px', background: '#FF9800', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Add</button>
+                                                            </div>
+
+                                                            {formData.outsideWork.map(work => (
+                                                                <div key={work.id || work._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid var(--color-gray-200)', fontSize: '0.85rem', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
+                                                                    <span>{work.name}</span>
+                                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                                        <span style={{ fontWeight: 600, marginRight: '10px' }}>₹{work.rate}</span>
+                                                                        <button type="button" onClick={() => setFormData({ ...formData, outsideWork: formData.outsideWork.filter(w => w.id !== work.id) })} style={{ color: '#F44336', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>×</button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 6. Next Service Advice Tab */}
+                                        {activeTab === 'next_service' && (
+                                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
+                                                        <span style={{ fontSize: '1.5rem' }}>🗓️</span>
+                                                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Next Service Recommendations</h4>
+                                                    </div>
+
+                                                    <div style={{ background: 'var(--color-gray-50)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray-200)' }}>
+                                                        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                                                            <label style={labelStyle}>📢 Advisor's Advice</label>
+                                                            <textarea value={formData.nextService.advice} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, advice: e.target.value } })} placeholder="e.g. Engine oil replacement needed in next 3000km, Chain slack adjustment recommended..." rows={4} style={inputStyle}></textarea>
+                                                        </div>
+
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                                                            <div>
+                                                                <label style={labelStyle}>📅 Next Service Due Date</label>
+                                                                <input type="date" value={formData.nextService.dueDate} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, dueDate: e.target.value } })} style={inputStyle} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={labelStyle}>🏍️ Next Service Odometer (km)</label>
+                                                                <input type="number" value={formData.nextService.dueOdometer} onChange={(e) => setFormData({ ...formData, nextService: { ...formData.nextService, dueOdometer: e.target.value } })} placeholder="e.g. 15500" style={inputStyle} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 7. Delivery Tab */}
+                                        {activeTab === 'delivery' && (
+                                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)' }}>
+                                                        <span style={{ fontSize: '1.5rem' }}>🏁</span>
+                                                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Vehicle Handover & Delivery</h4>
+                                                    </div>
+
+                                                    <div style={{ background: 'var(--color-gray-50)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-gray-200)' }}>
+                                                        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                                                            <label style={labelStyle}>🚚 Delivery Type</label>
+                                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                                {['Pickup (Self)', 'Home Delivery'].map(type => (
+                                                                    <button
+                                                                        key={type}
+                                                                        type="button"
+                                                                        onClick={() => setFormData({ ...formData, delivery: { ...formData.delivery, type: type.includes('Pickup') ? 'pickup' : 'delivery' } })}
+                                                                        style={{
+                                                                            flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--color-gray-300)', cursor: 'pointer',
+                                                                            background: (type.includes('Pickup') ? formData.delivery.type === 'pickup' : formData.delivery.type === 'delivery') ? 'var(--color-primary)' : 'white',
+                                                                            color: (type.includes('Pickup') ? formData.delivery.type === 'pickup' : formData.delivery.type === 'delivery') ? 'white' : 'var(--text-secondary)',
+                                                                            fontWeight: 600
+                                                                        }}
+                                                                    >
+                                                                        {type}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {formData.delivery.type === 'delivery' && (
+                                                            <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                                                                <label style={labelStyle}>🏠 Delivery Address</label>
+                                                                <textarea value={formData.delivery.address} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, address: e.target.value } })} placeholder="Enter delivery address..." rows={2} style={inputStyle}></textarea>
+                                                            </div>
+                                                        )}
+
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                                                            <div>
+                                                                <label style={labelStyle}>📄 Delivery Challan No.</label>
+                                                                <input type="text" value={formData.delivery.challanNo} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, challanNo: e.target.value } })} placeholder="e.g. DC-789" style={inputStyle} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={labelStyle}>👤 Handed Over To</label>
+                                                                <input type="text" value={formData.delivery.personName} onChange={(e) => setFormData({ ...formData, delivery: { ...formData.delivery, personName: e.target.value } })} placeholder="Person Name" style={inputStyle} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ padding: 'var(--spacing-lg)', borderTop: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0, background: 'white' }}>
+                                        {editingJobCard && (
+                                            <button type="button" onClick={() => { setPrintJobCard(editingJobCard); setShowPrintModal(true); }} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '2px solid #607D8B', background: 'rgba(96, 125, 139, 0.1)', cursor: 'pointer', fontWeight: 600, color: '#607D8B' }}>🖨️ Print Job Card</button>
+                                        )}
+                                        <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+                                            <button type="button" onClick={() => setShowFullModal(false)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', background: 'white', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+                                            {!formData.isLocked && <button type="submit" className="btn btn-primary" style={{ padding: '12px 30px' }}>{editingJobCard ? 'Update' : 'Create'} Job Card</button>}
                                         </div>
                                     </div>
-                                )}
-
-                            </div>
-
-                            {/* Actions */}
-                            <div style={{ padding: 'var(--spacing-lg)', borderTop: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0, background: 'white' }}>
-                                {editingJobCard && (
-                                    <button type="button" onClick={() => { setPrintJobCard(editingJobCard); setShowPrintModal(true); }} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '2px solid #607D8B', background: 'rgba(96, 125, 139, 0.1)', cursor: 'pointer', fontWeight: 600, color: '#607D8B' }}>🖨️ Print Job Card</button>
-                                )}
-                                <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-                                    <button type="button" onClick={() => setShowFullModal(false)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', background: 'white', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                                    {!formData.isLocked && <button type="submit" className="btn btn-primary" style={{ padding: '12px 30px' }}>{editingJobCard ? 'Update' : 'Create'} Job Card</button>}
-                                </div>
-                            </div>
-                        </form>
+                                </form>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

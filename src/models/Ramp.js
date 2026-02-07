@@ -5,6 +5,8 @@ const RampSchema = new mongoose.Schema({
     name: { type: String, required: true },
     bayType: { type: String, required: true },
     branch: { type: String, required: true },
+    technicianId: { type: String },
+    technicianName: { type: String },
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

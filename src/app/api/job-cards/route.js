@@ -43,7 +43,7 @@ export async function POST(request) {
                 // Check if request already exists for this Job Card and part
                 const existingReq = await InventoryRequest.findOne({
                     jobCardNo: jobCard.jobCardNo,
-                    partNumber: spare.partNumber || spare.name // Fallback if partNumber not provided
+                    partCode: spare.partCode || spare.name // Fallback if partCode not provided
                 });
 
                 if (!existingReq) {
@@ -51,7 +51,7 @@ export async function POST(request) {
                         jobCardNo: jobCard.jobCardNo,
                         technicianName: techName,
                         partName: spare.name,
-                        partNumber: spare.partNumber || spare.name,
+                        partCode: spare.partCode || spare.name,
                         qty: spare.qty,
                         status: spare.status || 'pending'
                     });

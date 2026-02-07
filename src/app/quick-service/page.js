@@ -110,7 +110,7 @@ export default function QuickServicePage() {
                     name: p.name,
                     rate: p.salePrice,
                     stock: p.stock,
-                    partNumber: p.partNumber
+                    partCode: p.partCode
                 })));
             } else {
                 console.warn('Parts data is not an array:', partsData);
@@ -300,7 +300,7 @@ export default function QuickServicePage() {
                         labourItems: estimateLabour.map(l => ({ name: l.name, rate: l.rate, qty: l.qty })),
                         spareRequests: estimateParts.map(p => ({
                             name: p.name,
-                            partNumber: p.partNumber,
+                            partCode: p.partCode,
                             rate: p.rate,
                             qty: p.qty,
                             status: 'approved'

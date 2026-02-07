@@ -5,7 +5,7 @@ const PurchaseOrderSchema = new mongoose.Schema({
     supplier: { type: String, required: true },
     invoiceDate: { type: Date, required: true },
     items: [{
-        partNumber: { type: String, required: true },
+        partCode: { type: String, required: true },
         qty: { type: Number, required: true },
         price: { type: Number, required: true },
     }],

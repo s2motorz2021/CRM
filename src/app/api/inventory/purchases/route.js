@@ -27,7 +27,7 @@ export async function POST(request) {
                 // Update stock for each item
                 for (const item of po.items) {
                     await SparePart.findOneAndUpdate(
-                        { partNumber: item.partNumber },
+                        { partCode: item.partCode },
                         { $inc: { stock: item.qty } }
                     );
                 }

@@ -24,7 +24,7 @@ export async function POST(request) {
             if (!invReq) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
 
             if (data.status === 'approved') {
-                const part = await SparePart.findOne({ partNumber: invReq.partNumber });
+                const part = await SparePart.findOne({ partCode: invReq.partCode });
                 if (part) {
                     part.stock = Math.max(0, part.stock - invReq.qty);
                     await part.save();

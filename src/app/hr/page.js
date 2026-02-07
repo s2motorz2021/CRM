@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // Sample Data (Moved to Backend)
 const sampleStaff = [];
@@ -28,6 +28,36 @@ export default function HRPage() {
     const [rejectReason, setRejectReason] = useState('');
     const [auditLog, setAuditLog] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+
+    // Handle sorting request
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    // Sort staff list
+    const sortedStaff = useMemo(() => {
+        let sortableStaff = [...staff];
+        if (sortConfig.key !== null) {
+            sortableStaff.sort((a, b) => {
+                const aValue = a[sortConfig.key] ? a[sortConfig.key].toString().toLowerCase() : '';
+                const bValue = b[sortConfig.key] ? b[sortConfig.key].toString().toLowerCase() : '';
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableStaff;
+    }, [staff, sortConfig]);
 
     // Fetch data from API
     const fetchData = async () => {
@@ -503,8 +533,18 @@ export default function HRPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'var(--color-gray-100)' }}>
-                                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem' }}>Staff</th>
-                                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem' }}>Role</th>
+                                <th
+                                    onClick={() => requestSort('name')}
+                                    style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}
+                                >
+                                    Staff {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '🔼' : '🔽') : ''}
+                                </th>
+                                <th
+                                    onClick={() => requestSort('role')}
+                                    style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}
+                                >
+                                    Role {sortConfig.key === 'role' ? (sortConfig.direction === 'asc' ? '🔼' : '🔽') : ''}
+                                </th>
                                 <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem' }}>Branch</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.85rem' }}>Contact</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '0.85rem' }}>Status</th>
@@ -512,7 +552,7 @@ export default function HRPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {staff.map(s => (
+                            {sortedStaff.map(s => (
                                 <tr key={s._id || s.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                                     <td style={{ padding: '14px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

@@ -24,6 +24,7 @@ export default function InventoryPage() {
     const [filterBrand, setFilterBrand] = useState('all');
     const [suppliers, setSuppliers] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
 
     const [showPartModal, setShowPartModal] = useState(false);
@@ -33,7 +34,7 @@ export default function InventoryPage() {
     const [editingPart, setEditingPart] = useState(null);
 
     const [partForm, setPartForm] = useState({
-        partNumber: '', name: '', barcode: '', barcodeType: 'Code 128', scanType: 'auto', brand: '', category: '',
+        partCode: '', name: '', barcode: '', barcodeType: 'Code 128', scanType: 'auto', brand: '', category: '',
         purchasePrice: '', salePrice: '', mrp: '', stock: 0, minStock: 5,
         rackLocation: '', compatibleModels: ''
     });
@@ -100,15 +101,16 @@ export default function InventoryPage() {
     const lowStockParts = parts.filter(p => p.stock < p.minStock);
 
     const filteredParts = parts
-        .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) || p.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
+        .filter(p => !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.partCode.toLowerCase().includes(searchTerm.toLowerCase()) || p.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
         .filter(p => filterCategory === 'all' || p.category === filterCategory)
-        .filter(p => filterBrand === 'all' || p.brand === filterBrand);
+        .filter(p => filterBrand === 'all' || p.brand === filterBrand)
+        .filter(p => !showLowStockOnly || p.stock < p.minStock);
 
     const handleAddPart = () => {
         const nextNum = parts.length + 1;
         setEditingPart(null);
         setPartForm({
-            partNumber: `SP-${String(nextNum).padStart(3, '0')}`,
+            partCode: `SP-${String(nextNum).padStart(3, '0')}`,
             barcode: `BC-SP-${String(nextNum).padStart(3, '0')}`,
             barcodeType: 'Code 128',
             scanType: 'auto',
@@ -200,7 +202,7 @@ export default function InventoryPage() {
                 supplier: purchaseForm.supplier,
                 invoiceDate: new Date(purchaseForm.invoiceDate),
                 items: items.map(i => ({
-                    partNumber: parts.find(p => p._id === i.partId)?.partNumber,
+                    partCode: parts.find(p => p._id === i.partId)?.partCode,
                     qty: parseInt(i.qty),
                     price: parseFloat(i.price)
                 })),
@@ -276,7 +278,10 @@ export default function InventoryPage() {
                         <div style={{ fontWeight: 600, color: '#D32F2F' }}>Low Stock Alert!</div>
                         <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{lowStockParts.length} item(s) below minimum stock level</div>
                     </div>
-                    <button onClick={() => setActiveTab('stocklist')} style={{ background: '#F44336', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>View Items</button>
+                    <button onClick={() => {
+                        setActiveTab('stocklist');
+                        setShowLowStockOnly(true);
+                    }} style={{ background: '#F44336', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>View Items</button>
                 </div>
             )}
 
@@ -331,7 +336,7 @@ export default function InventoryPage() {
                             </thead>
                             <tbody>
                                 {requests.filter(r => r.status === 'pending').map((req) => {
-                                    const part = parts.find(p => p.partNumber === req.partNumber);
+                                    const part = parts.find(p => p.partCode === req.partCode);
                                     const hasStock = part && part.stock >= req.qty;
                                     return (
                                         <tr key={req._id} style={{ borderBottom: '1px solid var(--color-gray-200)' }}>
@@ -339,7 +344,7 @@ export default function InventoryPage() {
                                             <td style={{ padding: 'var(--spacing-md)' }}>{req.technicianName}</td>
                                             <td style={{ padding: 'var(--spacing-md)' }}>
                                                 <div style={{ fontWeight: 500 }}>{req.partName}</div>
-                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.partNumber}</div>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.partCode}</div>
                                             </td>
                                             <td style={{ padding: 'var(--spacing-md)', textAlign: 'center', fontWeight: 600 }}>{req.qty}</td>
                                             <td style={{ padding: 'var(--spacing-md)', fontSize: '0.9rem' }}>{new Date(req.requestedAt).toLocaleString('en-IN')}</td>
@@ -367,7 +372,7 @@ export default function InventoryPage() {
                     <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', background: 'white', padding: 'var(--spacing-sm) var(--spacing-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', flex: 1, maxWidth: '300px' }}>
                             <span>🔍</span>
-                            <input type="text" placeholder="Search by name, part no, barcode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.9rem' }} />
+                            <input type="text" placeholder="Search by name, part code, barcode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.9rem' }} />
                         </div>
                         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-gray-200)', fontSize: '0.9rem' }}>
                             <option value="all">All Categories</option>
@@ -377,6 +382,26 @@ export default function InventoryPage() {
                             <option value="all">All Brands</option>
                             {brands.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
+                        {showLowStockOnly && (
+                            <button
+                                onClick={() => setShowLowStockOnly(false)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid #F44336',
+                                    background: 'rgba(244, 67, 54, 0.1)',
+                                    color: '#F44336',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <span>✕</span> Clear Low Stock Filter
+                            </button>
+                        )}
                     </div>
 
                     {/* Parts Table */}
@@ -384,7 +409,7 @@ export default function InventoryPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--color-gray-100)' }}>
-                                    <th style={{ padding: 'var(--spacing-md)', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600 }}>Part No / Barcode</th>
+                                    <th style={{ padding: 'var(--spacing-md)', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600 }}>Part Code / Barcode</th>
                                     <th style={{ padding: 'var(--spacing-md)', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600 }}>Part Details</th>
                                     <th style={{ padding: 'var(--spacing-md)', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600 }}>Category / Brand</th>
                                     <th style={{ padding: 'var(--spacing-md)', textAlign: 'center', fontSize: '0.8rem', fontWeight: 600 }}>Current Stock</th>
@@ -399,7 +424,7 @@ export default function InventoryPage() {
                                     return (
                                         <tr key={part._id} style={{ borderBottom: '1px solid var(--color-gray-200)', background: part.stock < part.minStock ? 'rgba(244, 67, 54, 0.03)' : 'transparent' }}>
                                             <td style={{ padding: 'var(--spacing-md)' }}>
-                                                <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{part.partNumber}</div>
+                                                <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{part.partCode}</div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{part.barcode}</div>
                                             </td>
                                             <td style={{ padding: 'var(--spacing-md)' }}>
@@ -570,8 +595,8 @@ export default function InventoryPage() {
                         <form onSubmit={handleSavePart}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Part Number * <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(unique)</span></label>
-                                    <input type="text" value={partForm.partNumber} onChange={(e) => setPartForm({ ...partForm, partNumber: e.target.value })} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
+                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Part Code * <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(unique)</span></label>
+                                    <input type="text" value={partForm.partCode} onChange={(e) => setPartForm({ ...partForm, partCode: e.target.value })} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem', fontWeight: 500 }}>Scan Type</label>

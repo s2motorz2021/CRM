@@ -7,6 +7,7 @@ const GST_RATES = [0, 5, 12, 18, 28];
 export default function BillingPage() {
     const [activeTab, setActiveTab] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isInvoiceMinimized, setIsInvoiceMinimized] = useState(false);
     const [invoices, setInvoices] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [viewInvoice, setViewInvoice] = useState(null);
@@ -403,234 +404,255 @@ export default function BillingPage() {
 
             {/* Create Invoice Modal */}
             {showCreateModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', borderRadius: '12px', width: '95%', maxWidth: '1100px', maxHeight: '95vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={isInvoiceMinimized ? {
+                    position: 'fixed', bottom: '20px', right: '20px', width: '350px', zIndex: 1000,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)', borderRadius: '12px', overflow: 'hidden',
+                    background: 'white', border: '1px solid var(--color-primary)'
+                } : {
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div style={isInvoiceMinimized ? { width: '100%', display: 'flex', flexDirection: 'column' } : {
+                        background: 'white', borderRadius: '12px', width: '95%', maxWidth: '1100px',
+                        maxHeight: '95vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+                    }}>
                         {/* Modal Header */}
-                        <div style={{ padding: '16px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ margin: 0 }}>📝 Create New Invoice</h2>
-                            <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                        <div style={{ padding: '16px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: isInvoiceMinimized ? 'pointer' : 'default', background: isInvoiceMinimized ? 'var(--color-primary)' : 'white' }} onClick={() => isInvoiceMinimized && setIsInvoiceMinimized(false)}>
+                            <h2 style={{ margin: 0, fontSize: isInvoiceMinimized ? '1rem' : '1.5rem', color: isInvoiceMinimized ? 'white' : 'inherit' }}>
+                                {isInvoiceMinimized ? '📄 Invoice: ' + (customer.name || 'New') : '📝 Create New Invoice'}
+                            </h2>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button onClick={(e) => { e.stopPropagation(); setIsInvoiceMinimized(!isInvoiceMinimized); }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title={isInvoiceMinimized ? "Expand" : "Minimize"}>
+                                    {isInvoiceMinimized ? '🗖' : '—'}
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); setShowCreateModal(false); setIsInvoiceMinimized(false); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title="Close">×</button>
+                            </div>
                         </div>
 
-                        {/* Modal Body */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                            {/* Import Section */}
-                            <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--color-gray-100)', borderRadius: '8px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>📋 Import from Job Card</label>
-                                <select value={selectedJobCard} onChange={(e) => handleImportJobCard(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                                    <option value="">Select Pending Job Card...</option>
-                                    {pendingJobs.map(job => (
-                                        <option key={job._id} value={job._id}>
-                                            {job.jobCardNo} - {job.customerId?.name} ({job.vehicleId?.registrationNo})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Customer & Vehicle */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Customer Name</label>
-                                    <input type="text" value={customer.name} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Phone</label>
-                                    <input type="text" value={customer.phone} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Vehicle Number</label>
-                                    <input type="text" value={vehicle.registrationNo} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>GSTIN (Optional)</label>
-                                    <input type="text" placeholder="22AAAAA0000A1Z5" value={customer.gstin} onChange={(e) => setCustomer({ ...customer, gstin: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} maxLength={15} />
-                                </div>
-                            </div>
-
-                            {/* Invoice Items Grid */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <h4 style={{ margin: 0 }}>📦 Parts & Spares</h4>
-                                    <button onClick={() => addItem('parts')} style={{ padding: '6px 12px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Part</button>
-                                </div>
-                                {parts.length > 0 && (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f5f5f5' }}>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '30%' }}>Description</th>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>HSN</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '12%' }}>GST %</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '13%' }}>Total</th>
-                                                <th style={{ padding: '8px', width: '5%' }}></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {parts.map(item => (
-                                                <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                                                    <td style={{ padding: '6px' }}><input type="text" value={item.name} onChange={(e) => updateItem('parts', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="text" value={item.hsn} onChange={(e) => updateItem('parts', item.id, 'hsn', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('parts', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('parts', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
-                                                    <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('parts', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
-                                                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
-                                                    <td style={{ padding: '6px' }}><button onClick={() => removeItem('parts', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
-                                                </tr>
+                        {!isInvoiceMinimized && (
+                            <>
+                                {/* Modal Body */}
+                                <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                                    {/* Import Section */}
+                                    <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--color-gray-100)', borderRadius: '8px' }}>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>📋 Import from Job Card</label>
+                                        <select value={selectedJobCard} onChange={(e) => handleImportJobCard(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
+                                            <option value="">Select Pending Job Card...</option>
+                                            {pendingJobs.map(job => (
+                                                <option key={job._id} value={job._id}>
+                                                    {job.jobCardNo} - {job.customerId?.name} ({job.vehicleId?.registrationNo})
+                                                </option>
                                             ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            {/* Labour Items */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <h4 style={{ margin: 0 }}>🔧 Labour Charges</h4>
-                                    <button onClick={() => addItem('labour')} style={{ padding: '6px 12px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Labour</button>
-                                </div>
-                                {labour.length > 0 && (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f5f5f5' }}>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '35%' }}>Description</th>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>SAC</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>GST %</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '10%' }}>Total</th>
-                                                <th style={{ padding: '8px', width: '5%' }}></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {labour.map(item => (
-                                                <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                                                    <td style={{ padding: '6px' }}><input type="text" value={item.name} onChange={(e) => updateItem('labour', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="text" value={item.sac} onChange={(e) => updateItem('labour', item.id, 'sac', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('labour', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('labour', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
-                                                    <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('labour', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
-                                                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
-                                                    <td style={{ padding: '6px' }}><button onClick={() => removeItem('labour', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            {/* Outside Work Items */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <h4 style={{ margin: 0 }}>🏭 Outside Work / External Labour</h4>
-                                    <button onClick={() => addItem('outsideWork')} style={{ padding: '6px 12px', background: '#9C27B0', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Outside Work</button>
-                                </div>
-                                {outsideWork.length > 0 && (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f5f5f5' }}>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '35%' }}>Description</th>
-                                                <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>SAC</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
-                                                <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>GST %</th>
-                                                <th style={{ padding: '8px', textAlign: 'right', width: '10%' }}>Total</th>
-                                                <th style={{ padding: '8px', width: '5%' }}></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {outsideWork.map(item => (
-                                                <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                                                    <td style={{ padding: '6px' }}><input type="text" placeholder="e.g. Painting, Denting" value={item.name} onChange={(e) => updateItem('outsideWork', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="text" value={item.sac} onChange={(e) => updateItem('outsideWork', item.id, 'sac', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('outsideWork', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
-                                                    <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('outsideWork', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
-                                                    <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('outsideWork', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
-                                                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
-                                                    <td style={{ padding: '6px' }}><button onClick={() => removeItem('outsideWork', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-
-                            {/* Payment Summary */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                {/* Left: Discounts & Payment */}
-                                <div>
-                                    <h4 style={{ marginBottom: '12px' }}>💰 Discounts & Payment</h4>
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Manual Discount (₹)</label>
-                                        <input type="number" min="0" value={manualDiscount} onChange={(e) => setManualDiscount(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
-                                    </div>
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Coupon Code</label>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input type="text" placeholder="Enter coupon" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
-                                            <button onClick={applyCoupon} style={{ padding: '10px 16px', background: '#FF9800', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Apply</button>
-                                        </div>
-                                        {appliedCoupon && <p style={{ color: '#4CAF50', fontSize: '0.85rem', marginTop: '4px' }}>✅ {appliedCoupon.code} applied (-₹{totals.couponDiscount.toFixed(0)})</p>}
-                                    </div>
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Payment Method</label>
-                                        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                                            <option value="cash">Cash</option>
-                                            <option value="card">Card</option>
-                                            <option value="upi">UPI</option>
-                                            <option value="mixed">Mixed</option>
                                         </select>
                                     </div>
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Payment Status</label>
-                                        <select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                                            <option value="pending">Pending</option>
-                                            <option value="partial">Partial</option>
-                                            <option value="paid">Paid</option>
-                                        </select>
-                                    </div>
-                                    {paymentStatus === 'partial' && (
-                                        <div style={{ marginBottom: '12px' }}>
-                                            <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Amount Paid (₹)</label>
-                                            <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
+
+                                    {/* Customer & Vehicle */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Customer Name</label>
+                                            <input type="text" value={customer.name} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
                                         </div>
-                                    )}
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Phone</label>
+                                            <input type="text" value={customer.phone} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Vehicle Number</label>
+                                            <input type="text" value={vehicle.registrationNo} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', background: '#f9f9f9' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>GSTIN (Optional)</label>
+                                            <input type="text" placeholder="22AAAAA0000A1Z5" value={customer.gstin} onChange={(e) => setCustomer({ ...customer, gstin: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} maxLength={15} />
+                                        </div>
+                                    </div>
+
+                                    {/* Invoice Items Grid */}
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0 }}>📦 Parts & Spares</h4>
+                                            <button onClick={() => addItem('parts')} style={{ padding: '6px 12px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Part</button>
+                                        </div>
+                                        {parts.length > 0 && (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f5f5f5' }}>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '30%' }}>Description</th>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>HSN</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '12%' }}>GST %</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '13%' }}>Total</th>
+                                                        <th style={{ padding: '8px', width: '5%' }}></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {parts.map(item => (
+                                                        <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                            <td style={{ padding: '6px' }}><input type="text" value={item.name} onChange={(e) => updateItem('parts', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="text" value={item.hsn} onChange={(e) => updateItem('parts', item.id, 'hsn', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('parts', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('parts', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
+                                                            <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('parts', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
+                                                            <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
+                                                            <td style={{ padding: '6px' }}><button onClick={() => removeItem('parts', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Labour Items */}
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0 }}>🔧 Labour Charges</h4>
+                                            <button onClick={() => addItem('labour')} style={{ padding: '6px 12px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Labour</button>
+                                        </div>
+                                        {labour.length > 0 && (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f5f5f5' }}>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '35%' }}>Description</th>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>SAC</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>GST %</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '10%' }}>Total</th>
+                                                        <th style={{ padding: '8px', width: '5%' }}></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {labour.map(item => (
+                                                        <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                            <td style={{ padding: '6px' }}><input type="text" value={item.name} onChange={(e) => updateItem('labour', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="text" value={item.sac} onChange={(e) => updateItem('labour', item.id, 'sac', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('labour', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('labour', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
+                                                            <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('labour', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
+                                                            <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
+                                                            <td style={{ padding: '6px' }}><button onClick={() => removeItem('labour', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Outside Work Items */}
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0 }}>🏭 Outside Work / External Labour</h4>
+                                            <button onClick={() => addItem('outsideWork')} style={{ padding: '6px 12px', background: '#9C27B0', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>+ Add Outside Work</button>
+                                        </div>
+                                        {outsideWork.length > 0 && (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f5f5f5' }}>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '35%' }}>Description</th>
+                                                        <th style={{ padding: '8px', textAlign: 'left', width: '15%' }}>SAC</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>Qty</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '15%' }}>Rate</th>
+                                                        <th style={{ padding: '8px', textAlign: 'center', width: '10%' }}>GST %</th>
+                                                        <th style={{ padding: '8px', textAlign: 'right', width: '10%' }}>Total</th>
+                                                        <th style={{ padding: '8px', width: '5%' }}></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {outsideWork.map(item => (
+                                                        <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                            <td style={{ padding: '6px' }}><input type="text" placeholder="e.g. Painting, Denting" value={item.name} onChange={(e) => updateItem('outsideWork', item.id, 'name', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="text" value={item.sac} onChange={(e) => updateItem('outsideWork', item.id, 'sac', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="1" value={item.qty} onChange={(e) => updateItem('outsideWork', item.id, 'qty', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} /></td>
+                                                            <td style={{ padding: '6px' }}><input type="number" min="0" value={item.rate} onChange={(e) => updateItem('outsideWork', item.id, 'rate', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'right' }} /></td>
+                                                            <td style={{ padding: '6px' }}><select value={item.gst} onChange={(e) => updateItem('outsideWork', item.id, 'gst', e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}>{GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}</select></td>
+                                                            <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600 }}>₹{(item.qty * item.rate * (1 + item.gst / 100)).toFixed(0)}</td>
+                                                            <td style={{ padding: '6px' }}><button onClick={() => removeItem('outsideWork', item.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '1.1rem' }}>×</button></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Payment Summary */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        {/* Left: Discounts & Payment */}
+                                        <div>
+                                            <h4 style={{ marginBottom: '12px' }}>💰 Discounts & Payment</h4>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Manual Discount (₹)</label>
+                                                <input type="number" min="0" value={manualDiscount} onChange={(e) => setManualDiscount(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
+                                            </div>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Coupon Code</label>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <input type="text" placeholder="Enter coupon" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
+                                                    <button onClick={applyCoupon} style={{ padding: '10px 16px', background: '#FF9800', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Apply</button>
+                                                </div>
+                                                {appliedCoupon && <p style={{ color: '#4CAF50', fontSize: '0.85rem', marginTop: '4px' }}>✅ {appliedCoupon.code} applied (-₹{totals.couponDiscount.toFixed(0)})</p>}
+                                            </div>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Payment Method</label>
+                                                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
+                                                    <option value="cash">Cash</option>
+                                                    <option value="card">Card</option>
+                                                    <option value="upi">UPI</option>
+                                                    <option value="mixed">Mixed</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Payment Status</label>
+                                                <select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="partial">Partial</option>
+                                                    <option value="paid">Paid</option>
+                                                </select>
+                                            </div>
+                                            {paymentStatus === 'partial' && (
+                                                <div style={{ marginBottom: '12px' }}>
+                                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Amount Paid (₹)</label>
+                                                    <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Right: Invoice Summary */}
+                                        <div style={{ background: 'linear-gradient(135deg, #00B8D4, #0097A7)', padding: '20px', borderRadius: '12px', color: 'white' }}>
+                                            <h4 style={{ marginBottom: '16px' }}>📊 Invoice Summary</h4>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span>Subtotal:</span><span>₹{totals.subtotal.toFixed(2)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span>CGST:</span><span>₹{totals.cgst.toFixed(2)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span>SGST:</span><span>₹{totals.sgst.toFixed(2)}</span>
+                                            </div>
+                                            {totals.totalDiscount > 0 && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#FFD54F' }}>
+                                                    <span>Discount:</span><span>-₹{totals.totalDiscount.toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', opacity: 0.8 }}>
+                                                <span>Round Off:</span><span>₹{totals.roundOff.toFixed(2)}</span>
+                                            </div>
+                                            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.3)', margin: '12px 0' }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 700 }}>
+                                                <span>Grand Total:</span><span>₹{totals.grandTotal}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Right: Invoice Summary */}
-                                <div style={{ background: 'linear-gradient(135deg, #00B8D4, #0097A7)', padding: '20px', borderRadius: '12px', color: 'white' }}>
-                                    <h4 style={{ marginBottom: '16px' }}>📊 Invoice Summary</h4>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span>Subtotal:</span><span>₹{totals.subtotal.toFixed(2)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span>CGST:</span><span>₹{totals.cgst.toFixed(2)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span>SGST:</span><span>₹{totals.sgst.toFixed(2)}</span>
-                                    </div>
-                                    {totals.totalDiscount > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#FFD54F' }}>
-                                            <span>Discount:</span><span>-₹{totals.totalDiscount.toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', opacity: 0.8 }}>
-                                        <span>Round Off:</span><span>₹{totals.roundOff.toFixed(2)}</span>
-                                    </div>
-                                    <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.3)', margin: '12px 0' }} />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 700 }}>
-                                        <span>Grand Total:</span><span>₹{totals.grandTotal}</span>
-                                    </div>
+                                {/* Modal Footer */}
+                                <div style={{ padding: '16px 24px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                    <button onClick={() => setShowCreateModal(false)} style={{ padding: '10px 24px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                    <button onClick={handleCreateInvoice} disabled={isLoading} className="btn btn-primary" style={{ padding: '10px 32px' }}>
+                                        {isLoading ? 'Creating...' : '✅ Create Invoice'}
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button onClick={() => setShowCreateModal(false)} style={{ padding: '10px 24px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Cancel</button>
-                            <button onClick={handleCreateInvoice} disabled={isLoading} className="btn btn-primary" style={{ padding: '10px 32px' }}>
-                                {isLoading ? 'Creating...' : '✅ Create Invoice'}
-                            </button>
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

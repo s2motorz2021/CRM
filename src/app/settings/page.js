@@ -121,6 +121,7 @@ const masterCategories = [
             { key: 'name', label: 'Bay Name/Number', type: 'text', required: true },
             { key: 'bayType', label: 'Bay Type', type: 'select', options: ['Service', 'Water Wash', 'Quick Service'], required: true },
             { key: 'branch', label: 'Branch', type: 'select', options: [], required: true },
+            { key: 'technicianName', label: 'Technician Name', type: 'select', options: [], isSearchable: true },
         ],
     },
     {
@@ -387,6 +388,13 @@ export default function SettingsPage() {
                 if (invSetRes.ok) {
                     const data = await invSetRes.json();
                     setMasterData(prev => ({ ...prev, inventorySettings: data.map(i => ({ ...i, id: i._id, isActive: i.isActive ?? true })) }));
+                }
+
+                // Fetch Staff
+                const staffRes = await fetch('/api/staff');
+                if (staffRes.ok) {
+                    const data = await staffRes.json();
+                    setMasterData(prev => ({ ...prev, staff: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
@@ -687,7 +695,9 @@ export default function SettingsPage() {
                                         fields: selectedMaster.fields.map(f =>
                                             f.key === 'branch'
                                                 ? { ...f, options: branches.filter(b => b.isActive).map(b => b.name) }
-                                                : f
+                                                : f.key === 'technicianName'
+                                                    ? { ...f, options: (masterData.staff || []).filter(s => s.status === 'active' || s.isActive).map(s => s.name) }
+                                                    : f
                                         )
                                     };
                                 }
