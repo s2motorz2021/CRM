@@ -1784,7 +1784,7 @@ export default function JobCardsPage() {
                                                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate * item.qty}</div>
                                                                                 </div>
                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                                    <input type="number" value={item.qty} min={1} onChange={(e) => setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: parseInt(e.target.value) || 1 } : s) })} style={{ width: '40px', padding: '2px', textAlign: 'center', fontSize: '0.8rem' }} />
+                                                                                    <input type="number" value={item.qty} min={0.1} step={0.1} onChange={(e) => setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: parseFloat(e.target.value) || 0.1 } : s) })} style={{ width: '50px', padding: '2px', textAlign: 'center', fontSize: '0.8rem' }} />
                                                                                     <button type="button" onClick={() => handleRemoveSpare(item.id)} style={{ color: '#F44336', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}>×</button>
                                                                                 </div>
                                                                             </div>
