@@ -73,9 +73,11 @@ export function Sidebar() {
     // Check if user has permission for a menu item
     const hasPermission = (permissionKey) => {
         // Admin and Manager always have full access
-        if (userRole === 'Admin' || userRole === 'Manager') return true;
+        if (userRole === 'Admin' || userRole === 'Manager' || userRole === 'Workshop Manager') return true;
         // If permissions loaded from database, use them
-        if (permissions) return permissions[permissionKey] === true;
+        if (permissions) {
+            return permissions[permissionKey] === true;
+        }
         // Fallback: show dashboard for everyone
         return permissionKey === 'dashboard';
     };
