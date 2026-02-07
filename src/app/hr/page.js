@@ -519,17 +519,6 @@ export default function HRPage() {
             {/* Staff Master Tab */}
             {activeTab === 'staff' && (
                 <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-                    <div style={{ padding: '16px', borderBottom: '1px solid var(--color-gray-100)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                        <button onClick={async () => {
-                            if (!confirm('This will clear current staff and re-seed sample data. Continue?')) return;
-                            const res = await fetch('/api/staff/seed');
-                            if (res.ok) {
-                                await fetchData();
-                                alert('✅ Database seeded successfully!');
-                            }
-                        }} style={{ padding: '8px 16px', background: 'var(--color-gray-100)', border: '1px solid var(--color-gray-300)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>🌱 Seed Sample Data</button>
-                        <button onClick={() => setShowStaffModal(true)} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>➕ Add New Staff</button>
-                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'var(--color-gray-100)' }}>
