@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar, Header } from '@/components/Navigation';
 import { PersistentTaskProvider } from '@/context/PersistentTaskContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import GlobalMinimizedBar from '@/components/GlobalMinimizedBar';
 
 export default function ClientLayout({ children }) {
@@ -84,15 +85,17 @@ export default function ClientLayout({ children }) {
     }
 
     return (
-        <PersistentTaskProvider>
-            <div className="app-container">
-                <Sidebar />
-                <main className="main-content">
-                    <Header />
-                    {children}
-                </main>
-                <GlobalMinimizedBar />
-            </div>
-        </PersistentTaskProvider>
+        <ThemeProvider>
+            <PersistentTaskProvider>
+                <div className="app-container">
+                    <Sidebar />
+                    <main className="main-content">
+                        <Header />
+                        {children}
+                    </main>
+                    <GlobalMinimizedBar />
+                </div>
+            </PersistentTaskProvider>
+        </ThemeProvider>
     );
 }

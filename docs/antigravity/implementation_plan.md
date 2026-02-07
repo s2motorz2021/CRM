@@ -1,46 +1,33 @@
-# Persistent Minimized Tasks Implementation Plan
+# Theme and Accent Color Fix
 
-The objective is to ensure that minimized modals (like Job Cards or Invoices) persist even when the user navigates to other pages. When a user clicks the persistent minimized bar, they should be taken back to the respective page with the modal restored to its exact state.
+Fix the issue where Dark mode and Accent color buttons on the settings page are not working properly.
 
 ## Proposed Changes
 
-### 1. New Context: `src/context/PersistentTaskContext.js` [NEW]
-- Create a context to manage a registry of active/minimized tasks.
-- Each task object will contain:
-  - `id`: Unique identifier (e.g., job card number or 'new-invoice').
-  - `type`: 'jobcard' or 'invoice'.
-  - `title`: Display name.
-  - `data`: The full `formData` and related state.
-  - `activePage`: The route to navigate to (e.g., `/job-cards`).
-- Persist this registry in `localStorage`.
+### Global Styles
+#### [MODIFY] [globals.css](file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/globals.css)
+- Add a `.dark-theme` class that overrides light mode variables with dark mode ones.
+- Ensure primary color variables are set via CSS variables that can be overridden.
 
-### 2. Layout Integration: `src/components/ClientLayout.js`
-- Wrap the application with `PersistentTaskProvider`.
-- Add a floating UI container at the bottom-right for global minimized tasks.
+### Theme Context
+#### [NEW] [ThemeContext.js](file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/context/ThemeContext.js)
+- Create a new context to manage `theme` (light/dark) and `accentColor`.
+- Persist these settings in `localStorage`.
+- Apply the theme class and accent color CSS variables to the root element.
 
-### 3. Global UI: `src/components/GlobalMinimizedBar.js` [NEW]
-- A component that renders the list of minimized tasks from `PersistentTaskContext`.
-- Clicking a task will:
-  - Navigate to the `activePage`.
-  - The page will then detect the active task and restore the modal.
+### Layout Integration
+#### [MODIFY] [ClientLayout.js](file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/components/ClientLayout.js)
+- Wrap the application with `ThemeProvider`.
 
-### 4. Job Cards Page: `src/app/job-cards/page.js`
-- On mount: Check if there's a persistent task of type 'jobcard'.
-- If found: Restore `editingJobCard`, `formData`, and `activeTab`. Open the modal.
-- On Minimize: Sync current state to `PersistentTaskContext`.
-- On Close (X): Remove task from `PersistentTaskContext`.
-
-### 5. Billing Page: `src/app/billing/page.js`
-- Similar logic for the "Create Invoice" modal.
+### Settings Page
+#### [MODIFY] [page.js](file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/settings/page.js)
+- Integrate `useTheme` context.
+- Add `onClick` handlers to accent color circles.
+- Update Dark Mode toggle buttons to use the context.
 
 ## Verification Plan
-
 ### Manual Verification
-1.  Open "New Job Card" and fill in some details.
-2.  Minimize the Job Card.
-3.  Navigate to "Billing" or "HR".
-4.  Verify the minimized bar is still visible at the bottom-right.
-5.  Click the minimized bar.
-6.  Verify you are taken back to the "Job Cards" page and the modal is open with the previously filled details.
-7.  Repeat for the "Create Invoice" modal.
-8.  Verify that closing the modal (X) removes it from the persistent bar.
+- Go to Settings > Appearance.
+- Toggle between Light and Dark mode; verify the UI changes immediately.
+- Click various accent colors; verify the primary brand color (buttons, icons, etc.) updates across the app.
+- Refresh the page; verify settings persist.

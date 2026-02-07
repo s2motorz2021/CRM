@@ -36,3 +36,9 @@
     - [x] Implement `GlobalMinimizedBar.js`
     - [x] Refactor `JobCardsPage` to use global persistence
     - [x] Refactor `BillingPage` to use global persistence
+- [x] Debug Theme and Accent Color Settings
+    - [x] Create `ThemeContext.js`
+    - [x] Implement Dark Mode variables in `globals.css`
+    - [x] Integrate `ThemeProvider` in `ClientLayout.js`
+    - [x] Fix Dark Mode toggle and Accent Color buttons in `settings/page.js`
+    - [x] Verify persistence and global application of theme/accent

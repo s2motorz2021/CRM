@@ -65,6 +65,44 @@
   --header-height: 64px;
 }
 
+/* Dark Theme Overrides */
+.dark-theme {
+  --bg-primary: #0F172A;
+  --bg-sidebar: #020617;
+  --bg-card: #1E293B;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --color-gray-100: #1E293B;
+  --color-gray-200: #334155;
+  --color-gray-50: #0F172A;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --border-color: #334155;
+}
+
+.dark-theme .glass {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme input, 
+.dark-theme select, 
+.dark-theme textarea {
+  background-color: #0F172A;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+.dark-theme table thead tr {
+  background-color: #334155 !important;
+}
+
+.dark-theme table tbody tr {
+  border-bottom-color: #334155 !important;
+}
+
 /* Reset & Base */
 *,
 *::before,

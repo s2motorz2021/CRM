@@ -47,6 +47,19 @@ Fixed an issue where minimized modals (Job Cards and Invoices) would disappear w
   - Injected `PersistentTaskProvider` into `ClientLayout.js`.
   - Refactored `JobCardsPage` and `BillingPage` to sync modal state with the global registry.
 
+### Mode and Accent Color Settings
+Fixed an issue where the Dark Mode and Accent Color buttons in the Settings page were non-functional.
+
+- **Theme Context (`src/context/ThemeContext.js`)**:
+  - Created a global context to manage `theme` (Light/Dark) and `accentColor` state.
+  - Persists settings in `localStorage` for cross-session consistency.
+  - Automatically applies classes and CSS variables to the root document element.
+- **Global Styles (`src/app/globals.css`)**:
+  - Implemented `.dark-theme` class with comprehensive variable overrides for backgrounds, text, and components.
+- **Settings Page (`src/app/settings/page.js`)**:
+  - Connected UI controls to the global `ThemeContext`.
+  - Added click handlers to allow users to change the brand accent color instantly across the entire application.
+
 ## Verification
 
 ### Modal Minimization
@@ -67,9 +80,18 @@ Fixed an issue where minimized modals (Job Cards and Invoices) would disappear w
 - Confirmed that clicking a task in the global bar navigates to the correct page and restores the modal state.
 - Verified that closing the modal (X) removes the task from the global bar and `localStorage`.
 
+### Mode and Accent Color Settings
+- Verified through code inspection that `ThemeContext` correctly manipulates the `documentElement`.
+- Confirmed that `globals.css` now contains appropriate dark mode variable overrides.
+- Confirmed that accent color buttons in `SettingsPage` trigger the `changeAccentColor` method.
+- Verified that settings are persisted in `localStorage`.
+
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/billing/page.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/job-cards/page.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/hr/page.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/components/ClientLayout.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/context/PersistentTaskContext.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/components/GlobalMinimizedBar.js)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/context/ThemeContext.js)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/globals.css)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/settings/page.js)

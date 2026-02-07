@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 import MasterDataTable from '@/components/MasterDataTable';
 
 // Master data definitions
@@ -282,6 +283,7 @@ const rolePermissions = {
 };
 
 export default function SettingsPage() {
+    const { theme, accentColor, toggleTheme, changeAccentColor } = useTheme();
     const [activeTab, setActiveTab] = useState('master');
     const [selectedMaster, setSelectedMaster] = useState(null);
     const [masterData, setMasterData] = useState(sampleData);
@@ -421,8 +423,6 @@ export default function SettingsPage() {
     const [roles, setRoles] = useState(rolePermissions);
     const [selectedRole, setSelectedRole] = useState('Admin');
 
-    // Theme state
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const [dashboardSettings, setDashboardSettings] = useState({
         showRevenue: true, showPending: true, showVehicles: true, showJobs: true,
         refreshInterval: 30, defaultPeriod: 'today'
@@ -868,22 +868,22 @@ export default function SettingsPage() {
                     <div style={cardStyle}>
                         <h3 style={{ margin: '0 0 var(--spacing-lg)', fontSize: '1.1rem' }}>🎨 Theme</h3>
                         <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-                            <div onClick={() => setIsDarkMode(false)} style={{ flex: 1, padding: 'var(--spacing-lg)', background: '#fff', border: !isDarkMode ? '3px solid var(--color-primary)' : '2px solid var(--color-gray-200)', borderRadius: 'var(--radius-lg)', cursor: 'pointer', textAlign: 'center' }}>
+                            <div onClick={() => toggleTheme('light')} style={{ flex: 1, padding: 'var(--spacing-lg)', background: '#fff', border: theme === 'light' ? '3px solid var(--color-primary)' : '2px solid var(--color-gray-200)', borderRadius: 'var(--radius-lg)', cursor: 'pointer', textAlign: 'center' }}>
                                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>☀️</div>
                                 <div style={{ fontWeight: 600 }}>Light Mode</div>
                             </div>
-                            <div onClick={() => setIsDarkMode(true)} style={{ flex: 1, padding: 'var(--spacing-lg)', background: '#1a1a2e', border: isDarkMode ? '3px solid var(--color-primary)' : '2px solid var(--color-gray-200)', borderRadius: 'var(--radius-lg)', cursor: 'pointer', textAlign: 'center', color: 'white' }}>
+                            <div onClick={() => toggleTheme('dark')} style={{ flex: 1, padding: 'var(--spacing-lg)', background: '#1a1a2e', border: theme === 'dark' ? '3px solid var(--color-primary)' : '2px solid var(--color-gray-200)', borderRadius: 'var(--radius-lg)', cursor: 'pointer', textAlign: 'center', color: 'white' }}>
                                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🌙</div>
                                 <div style={{ fontWeight: 600 }}>Dark Mode</div>
                             </div>
                         </div>
-                        <p style={{ marginTop: 'var(--spacing-md)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Theme changes will apply on next login</p>
+                        <p style={{ marginTop: 'var(--spacing-md)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Theme changes apply instantly across the session</p>
                     </div>
                     <div style={cardStyle}>
                         <h3 style={{ margin: '0 0 var(--spacing-lg)', fontSize: '1.1rem' }}>🎯 Accent Color</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
                             {['#0891b2', '#2196F3', '#4CAF50', '#FF9800', '#E91E63', '#9C27B0', '#F44336', '#00BCD4', '#795548', '#607D8B'].map(color => (
-                                <div key={color} style={{ width: '40px', height: '40px', borderRadius: '50%', background: color, cursor: 'pointer', border: '3px solid white', boxShadow: 'var(--shadow-sm)' }} />
+                                <div key={color} onClick={() => changeAccentColor(color)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: color, cursor: 'pointer', border: accentColor === color ? '3px solid var(--text-primary)' : '3px solid white', boxShadow: 'var(--shadow-sm)' }} />
                             ))}
                         </div>
                     </div>
