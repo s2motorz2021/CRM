@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { usePersistentTasks } from '@/context/PersistentTaskContext';
 import SignaturePad from '@/components/SignaturePad';
 
 // Status pipeline with colors
@@ -145,6 +147,8 @@ const generateSampleJobCards = () => {
 };
 
 export default function JobCardsPage() {
+    const searchParams = useSearchParams();
+    const { addTask, removeTask, getTask } = usePersistentTasks();
     const [jobCards, setJobCards] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [vehiclesList, setVehiclesList] = useState([]);
@@ -219,6 +223,36 @@ export default function JobCardsPage() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    // Restoration logic
+    useEffect(() => {
+        const restoreId = searchParams.get('restore');
+        if (restoreId) {
+            const task = getTask(restoreId);
+            if (task && task.type === 'jobcard') {
+                handleRestoreTask(task);
+            }
+        }
+
+        const handleRestoreEvent = (e) => {
+            const task = getTask(e.detail);
+            if (task && task.type === 'jobcard') {
+                handleRestoreTask(task);
+            }
+        };
+
+        window.addEventListener('restore-task', handleRestoreEvent);
+        return () => window.removeEventListener('restore-task', handleRestoreEvent);
+    }, [searchParams, getTask]);
+
+    const handleRestoreTask = (task) => {
+        setEditingJobCard(task.data.editingJobCard);
+        setSelectedCustomer(task.data.selectedCustomer);
+        setFormData(task.data.formData);
+        setActiveTab(task.data.activeTab);
+        setIsJobCardMinimized(false);
+        setShowFullModal(true);
+    };
 
     const [viewMode, setViewMode] = useState('kanban');
     const [showFullModal, setShowFullModal] = useState(false);
@@ -976,10 +1010,32 @@ export default function JobCardsPage() {
                                 {!isJobCardMinimized && formData.isLocked && <span style={{ background: '#F44336', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>🔒 LOCKED</span>}
                             </div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <button onClick={(e) => { e.stopPropagation(); setIsJobCardMinimized(!isJobCardMinimized); }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title={isJobCardMinimized ? "Expand" : "Minimize"}>
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextMinimized = !isJobCardMinimized;
+                                    setIsJobCardMinimized(nextMinimized);
+                                    if (nextMinimized) {
+                                        addTask({
+                                            id: editingJobCard?._id || 'new-jobcard',
+                                            type: 'jobcard',
+                                            title: editingJobCard ? `Edit JC: ${editingJobCard.jobCardNo || editingJobCard.id}` : (selectedCustomer?.name ? `JC: ${selectedCustomer.name}` : 'New Job Card'),
+                                            data: { editingJobCard, selectedCustomer, formData, activeTab },
+                                            activePage: '/job-cards'
+                                        });
+                                    } else {
+                                        // When expanding, we can keep it in context or remove it. 
+                                        // The global bar only shows minimized tasks.
+                                        removeTask(editingJobCard?._id || 'new-jobcard');
+                                    }
+                                }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title={isJobCardMinimized ? "Expand" : "Minimize"}>
                                     {isJobCardMinimized ? '🗖' : '—'}
                                 </button>
-                                <button onClick={(e) => { e.stopPropagation(); setShowFullModal(false); setIsJobCardMinimized(false); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title="Close">×</button>
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeTask(editingJobCard?._id || 'new-jobcard');
+                                    setShowFullModal(false);
+                                    setIsJobCardMinimized(false);
+                                }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isJobCardMinimized ? 'white' : 'var(--text-muted)', padding: '4px' }} title="Close">×</button>
                             </div>
                         </div>
 

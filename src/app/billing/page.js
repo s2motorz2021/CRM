@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { usePersistentTasks } from '@/context/PersistentTaskContext';
 
 const GST_RATES = [0, 5, 12, 18, 28];
 
 export default function BillingPage() {
+    const searchParams = useSearchParams();
+    const { addTask, removeTask, getTask } = usePersistentTasks();
     const [activeTab, setActiveTab] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isInvoiceMinimized, setIsInvoiceMinimized] = useState(false);
@@ -84,6 +88,47 @@ export default function BillingPage() {
         setInvoiceDate(new Date().toISOString().split('T')[0]);
         setNextServiceDate('');
         setNextServiceKm('');
+    };
+
+    // Restoration logic
+    useEffect(() => {
+        const restoreId = searchParams.get('restore');
+        if (restoreId) {
+            const task = getTask(restoreId);
+            if (task && task.type === 'invoice') {
+                handleRestoreTask(task);
+            }
+        }
+
+        const handleRestoreEvent = (e) => {
+            const task = getTask(e.detail);
+            if (task && task.type === 'invoice') {
+                handleRestoreTask(task);
+            }
+        };
+
+        window.addEventListener('restore-task', handleRestoreEvent);
+        return () => window.removeEventListener('restore-task', handleRestoreEvent);
+    }, [searchParams, getTask]);
+
+    const handleRestoreTask = (task) => {
+        setSelectedJobCard(task.data.selectedJobCard);
+        setCustomer(task.data.customer);
+        setVehicle(task.data.vehicle);
+        setParts(task.data.parts);
+        setLabour(task.data.labour);
+        setOutsideWork(task.data.outsideWork);
+        setAppliedCoupon(task.data.appliedCoupon);
+        setManualDiscount(task.data.manualDiscount);
+        setPaymentMethod(task.data.paymentMethod);
+        setPaymentStatus(task.data.paymentStatus);
+        setAmountPaid(task.data.amountPaid);
+        setInvoiceDate(task.data.invoiceDate);
+        setNextServiceDate(task.data.nextServiceDate);
+        setNextServiceKm(task.data.nextServiceKm);
+
+        setIsInvoiceMinimized(false);
+        setShowCreateModal(true);
     };
 
     const handleImportJobCard = (id) => {
@@ -422,10 +467,34 @@ export default function BillingPage() {
                                 {isInvoiceMinimized ? '📄 Invoice: ' + (customer.name || 'New') : '📝 Create New Invoice'}
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <button onClick={(e) => { e.stopPropagation(); setIsInvoiceMinimized(!isInvoiceMinimized); }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title={isInvoiceMinimized ? "Expand" : "Minimize"}>
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextMinimized = !isInvoiceMinimized;
+                                    setIsInvoiceMinimized(nextMinimized);
+                                    if (nextMinimized) {
+                                        addTask({
+                                            id: 'new-invoice', // Use a constant for new invoice as there is only one creation modal
+                                            type: 'invoice',
+                                            title: customer.name ? `Invoice: ${customer.name}` : 'New Invoice',
+                                            data: {
+                                                selectedJobCard, customer, vehicle, parts, labour, outsideWork,
+                                                appliedCoupon, manualDiscount, paymentMethod, paymentStatus,
+                                                amountPaid, invoiceDate, nextServiceDate, nextServiceKm
+                                            },
+                                            activePage: '/billing'
+                                        });
+                                    } else {
+                                        removeTask('new-invoice');
+                                    }
+                                }} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title={isInvoiceMinimized ? "Expand" : "Minimize"}>
                                     {isInvoiceMinimized ? '🗖' : '—'}
                                 </button>
-                                <button onClick={(e) => { e.stopPropagation(); setShowCreateModal(false); setIsInvoiceMinimized(false); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title="Close">×</button>
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeTask('new-invoice');
+                                    setShowCreateModal(false);
+                                    setIsInvoiceMinimized(false);
+                                }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: isInvoiceMinimized ? 'white' : 'inherit', padding: '4px' }} title="Close">×</button>
                             </div>
                         </div>
 

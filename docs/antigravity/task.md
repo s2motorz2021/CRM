@@ -30,3 +30,9 @@
     - [x] Implement sorting state and logic in `hr/page.js`
     - [x] Add sorting UI to Staff and Role headers
     - [x] Verify sorting by Name (A-Z) and Role
+- [x] Persist Minimized Tasks Across Pages
+    - [x] Create `PersistentTaskContext.js`
+    - [x] Integrate provider in `ClientLayout.js`
+    - [x] Implement `GlobalMinimizedBar.js`
+    - [x] Refactor `JobCardsPage` to use global persistence
+    - [x] Refactor `BillingPage` to use global persistence

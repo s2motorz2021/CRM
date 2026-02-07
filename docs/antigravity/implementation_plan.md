@@ -1,46 +1,46 @@
-# Staff List Sorting Implementation
+# Persistent Minimized Tasks Implementation Plan
 
-The goal is to add sorting functionality to the Staff Master list on the HR page, specifically for the "Staff" (name) and "Role" columns.
+The objective is to ensure that minimized modals (like Job Cards or Invoices) persist even when the user navigates to other pages. When a user clicks the persistent minimized bar, they should be taken back to the respective page with the modal restored to its exact state.
 
 ## Proposed Changes
 
-### HR Page (`src/app/hr/page.js`)
+### 1. New Context: `src/context/PersistentTaskContext.js` [NEW]
+- Create a context to manage a registry of active/minimized tasks.
+- Each task object will contain:
+  - `id`: Unique identifier (e.g., job card number or 'new-invoice').
+  - `type`: 'jobcard' or 'invoice'.
+  - `title`: Display name.
+  - `data`: The full `formData` and related state.
+  - `activePage`: The route to navigate to (e.g., `/job-cards`).
+- Persist this registry in `localStorage`.
 
-- **State Management**:
-  - Add `sortConfig` state to track the current sorting column and order.
-    ```javascript
-    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
-    ```
+### 2. Layout Integration: `src/components/ClientLayout.js`
+- Wrap the application with `PersistentTaskProvider`.
+- Add a floating UI container at the bottom-right for global minimized tasks.
 
-- **Sorting Logic**:
-  - Implement a `requestSort` function to update the `sortConfig`.
-  - Implement a `sortedStaff` computed array using `useMemo` or a function call within the render.
-    ```javascript
-    const sortedStaff = [...staff].sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-    });
-    ```
+### 3. Global UI: `src/components/GlobalMinimizedBar.js` [NEW]
+- A component that renders the list of minimized tasks from `PersistentTaskContext`.
+- Clicking a task will:
+  - Navigate to the `activePage`.
+  - The page will then detect the active task and restore the modal.
 
-- **UI Updates**:
-  - Update the `<thead>` of the Staff Master table (starting around line 504).
-  - Add `onClick` handlers to "Staff" and "Role" headers to trigger `requestSort`.
-  - Add visual indicators (e.g., arrows 🔼/🔽) to show the current sort state.
-  - Update the `staff.map` call to use `sortedStaff.map`.
+### 4. Job Cards Page: `src/app/job-cards/page.js`
+- On mount: Check if there's a persistent task of type 'jobcard'.
+- If found: Restore `editingJobCard`, `formData`, and `activeTab`. Open the modal.
+- On Minimize: Sync current state to `PersistentTaskContext`.
+- On Close (X): Remove task from `PersistentTaskContext`.
+
+### 5. Billing Page: `src/app/billing/page.js`
+- Similar logic for the "Create Invoice" modal.
 
 ## Verification Plan
 
 ### Manual Verification
-- Navigate to the HR page and ensure "Staff Master" tab is active.
-- Click on the "Staff" header.
-  - Verify that staff members are sorted alphabetically by name.
-  - Click again and verify the sorting order reverses (Z-A).
-- Click on the "Role" header.
-  - Verify that staff members are sorted by their roles.
-  - Click again and verify the sorting order reverses.
-- Ensure the branch, contact, and status columns still display the correct data for each staff member after sorting.
+1.  Open "New Job Card" and fill in some details.
+2.  Minimize the Job Card.
+3.  Navigate to "Billing" or "HR".
+4.  Verify the minimized bar is still visible at the bottom-right.
+5.  Click the minimized bar.
+6.  Verify you are taken back to the "Job Cards" page and the modal is open with the previously filled details.
+7.  Repeat for the "Create Invoice" modal.
+8.  Verify that closing the modal (X) removes it from the persistent bar.

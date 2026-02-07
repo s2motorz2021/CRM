@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar, Header } from '@/components/Navigation';
+import { PersistentTaskProvider } from '@/context/PersistentTaskContext';
+import GlobalMinimizedBar from '@/components/GlobalMinimizedBar';
 
 export default function ClientLayout({ children }) {
     const pathname = usePathname();
@@ -82,12 +84,15 @@ export default function ClientLayout({ children }) {
     }
 
     return (
-        <div className="app-container">
-            <Sidebar />
-            <main className="main-content">
-                <Header />
-                {children}
-            </main>
-        </div>
+        <PersistentTaskProvider>
+            <div className="app-container">
+                <Sidebar />
+                <main className="main-content">
+                    <Header />
+                    {children}
+                </main>
+                <GlobalMinimizedBar />
+            </div>
+        </PersistentTaskProvider>
     );
 }

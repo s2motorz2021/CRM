@@ -35,6 +35,18 @@ Implemented sorting functionality for the Staff Master list in the HR module.
   - Enabled interactive sorting by clicking on "Staff" (Name) and "Role" column headers.
   - Added visual indicators (🔼/🔽) to represent the current sort state.
 
+### Persistent Minimized Tasks
+Fixed an issue where minimized modals (Job Cards and Invoices) would disappear when navigating between pages.
+
+- **Global Context (`src/context/PersistentTaskContext.js`)**:
+  - Implemented a registry for active/minimized tasks persisted in `localStorage`.
+- **Global UI (`src/components/GlobalMinimizedBar.js`)**:
+  - Created a floating bar that displays all minimized tasks globally.
+  - Clicking a task restores it and navigates back to the correct page.
+- **Integration**:
+  - Injected `PersistentTaskProvider` into `ClientLayout.js`.
+  - Refactored `JobCardsPage` and `BillingPage` to sync modal state with the global registry.
+
 ## Verification
 
 ### Modal Minimization
@@ -49,6 +61,15 @@ Implemented sorting functionality for the Staff Master list in the HR module.
 - Verified that clicking the "Staff" and "Role" headers toggles the sorting direction.
 - Confirmed the list re-orders correctly based on Name (A-Z/Z-A) and Role.
 
+### Persistent Minimized Tasks
+- Verified that the `PersistentTaskProvider` correctly wraps the application.
+- Confirmed that minimizing a Job Card adds it to the global bar and persists after page refresh/navigation.
+- Confirmed that clicking a task in the global bar navigates to the correct page and restores the modal state.
+- Verified that closing the modal (X) removes the task from the global bar and `localStorage`.
+
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/billing/page.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/job-cards/page.js)
 render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/app/hr/page.js)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/components/ClientLayout.js)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/context/PersistentTaskContext.js)
+render_diffs(file:///c:/Users/user/Desktop/S2_Motorz_CRM/src/components/GlobalMinimizedBar.js)
