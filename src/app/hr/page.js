@@ -562,7 +562,25 @@ export default function HRPage() {
                                     <td style={{ padding: '14px 16px' }}>{s.branch}</td>
                                     <td style={{ padding: '14px 16px' }}><div>{s.phone}</div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.email}</div></td>
                                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                                        <span style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 500, background: s.status === 'active' ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)', color: s.status === 'active' ? '#4CAF50' : '#F44336' }}>{s.status.toUpperCase()}</span>
+                                        <span
+                                            onClick={async () => {
+                                                const newStatus = s.status === 'active' ? 'inactive' : 'active';
+                                                try {
+                                                    const res = await fetch('/api/staff', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ ...s, _id: s._id, status: newStatus }),
+                                                    });
+                                                    if (res.ok) {
+                                                        setStaff(prev => prev.map(st => st._id === s._id ? { ...st, status: newStatus } : st));
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Error updating status:', err);
+                                                }
+                                            }}
+                                            style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 500, background: s.status === 'active' ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)', color: s.status === 'active' ? '#4CAF50' : '#F44336', cursor: 'pointer' }}
+                                            title="Click to toggle status"
+                                        >{s.status.toUpperCase()}</span>
                                     </td>
                                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
