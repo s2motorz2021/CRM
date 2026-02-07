@@ -1,0 +1,32 @@
+# Tasks
+
+- [x] Integrate Technicians with Ramps
+    - [x] Update `Ramp` model to include `technicianId`
+    - [x] Update `Settings` page to include Technician field in Ramp category
+    - [x] Update `MasterDataTable` component to support search/dropdown for technicians if needed
+    - [x] Update `/api/ramps` to handle technician data
+    - [x] Verify integration with HR module
+- [x] Rename "Part Number" to "Part Code"
+    - [x] Update `SparePart`, `JobCard`, `InventoryRequest`, `PurchaseOrder` models
+    - [x] Update Labels and State in Inventory page
+    - [x] Update Labels and State in Job Cards page
+    - [x] Update Labels and State in Quick Service page
+    - [x] Update API endpoints (`/api/parts`, `/api/inventory/*`, `/api/job-cards`)
+    - [x] Verify UI display and data persistence
+- [x] Fix "View Items" button in Low Stock Alert banner
+    - [x] Add `showLowStockOnly` state
+    - [x] Update filtering logic for `filteredParts`
+    - [x] Add toggle in UI to clear/apply low stock filter
+    - [x] Verify functionality
+- [x] Add Minimize Buttons to Modals
+    - [x] Implement minimize functionality in "Create New Invoice" modal (`billing/page.js`)
+    - [x] Implement minimize functionality in "New Job Card" modal (`job-cards/page.js`)
+    - [x] Verify minimized state UI
+- [x] Fix Dropdown Dismissal Issue
+    - [x] Implement click-outside listener in `job-cards/page.js`
+    - [x] Verify fix for Customer Search dropdown
+    - [x] Verify fix for Voice search dropdowns
+- [x] Add Sorting to Staff List
+    - [x] Implement sorting state and logic in `hr/page.js`
+    - [x] Add sorting UI to Staff and Role headers
+    - [x] Verify sorting by Name (A-Z) and Role
