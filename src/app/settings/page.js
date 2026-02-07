@@ -310,6 +310,13 @@ export default function SettingsPage() {
                 if (rolesRes.ok) {
                     const data = await rolesRes.json();
                     setMasterData(prev => ({ ...prev, staffRoles: data.map(r => ({ ...r, id: r._id, isActive: r.isActive ?? true })) }));
+
+                    // Also update role permissions for Role Access tab
+                    const rolePerms = {};
+                    data.forEach(r => {
+                        rolePerms[r.name] = { ...r.permissions, _id: r._id };
+                    });
+                    setRoles(prev => ({ ...prev, ...rolePerms }));
                 }
 
                 // Fetch Customers
@@ -681,11 +688,34 @@ export default function SettingsPage() {
     };
 
     // Role Access handlers
-    const togglePermission = (module) => {
+    const togglePermission = async (module) => {
+        const newValue = !roles[selectedRole][module];
+        const roleId = roles[selectedRole]._id;
+
+        // Update local state immediately for responsiveness
         setRoles(prev => ({
             ...prev,
-            [selectedRole]: { ...prev[selectedRole], [module]: !prev[selectedRole][module] }
+            [selectedRole]: { ...prev[selectedRole], [module]: newValue }
         }));
+
+        // Persist to database
+        if (roleId) {
+            try {
+                const updatedPermissions = { ...roles[selectedRole], [module]: newValue };
+                delete updatedPermissions._id;
+
+                await fetch('/api/roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _id: roleId,
+                        permissions: updatedPermissions,
+                    }),
+                });
+            } catch (error) {
+                console.error('Error saving role permission:', error);
+            }
+        }
     };
 
     // Backup handlers
