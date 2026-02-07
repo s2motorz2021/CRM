@@ -1781,7 +1781,7 @@ export default function JobCardsPage() {
                                                                             <div key={item.id || item._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', background: 'white', padding: '6px', borderRadius: '4px', border: '1px solid var(--color-gray-100)' }}>
                                                                                 <div style={{ fontSize: '0.8rem', flex: 1 }}>
                                                                                     <div style={{ fontWeight: 500 }}>{item.name}</div>
-                                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.rate * item.qty}</div>
+                                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{(item.rate * (parseFloat(item.qty) || 0)).toFixed(2)}</div>
                                                                                 </div>
                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                                     <input type="text" value={item.qty} onChange={(e) => { const val = e.target.value; if (val === '' || /^\d*\.?\d*$/.test(val)) { setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: val } : s) }); } }} onBlur={(e) => { const val = parseFloat(e.target.value) || 0.1; setFormData({ ...formData, spareRequests: formData.spareRequests.map(s => s.id === item.id ? { ...s, qty: val } : s) }); }} style={{ width: '50px', padding: '2px', textAlign: 'center', fontSize: '0.8rem' }} />
@@ -1792,7 +1792,7 @@ export default function JobCardsPage() {
                                                                     )}
                                                                     {formData.spareRequests.length > 0 && (
                                                                         <div style={{ borderTop: '1px solid var(--color-gray-200)', paddingTop: '8px', marginTop: '8px', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
-                                                                            Total: ₹{formData.spareRequests.reduce((sum, s) => sum + (s.rate * s.qty), 0)}
+                                                                            Total: ₹{formData.spareRequests.reduce((sum, s) => sum + (s.rate * (parseFloat(s.qty) || 0)), 0).toFixed(2)}
                                                                         </div>
                                                                     )}
                                                                 </div>
