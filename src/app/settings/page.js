@@ -410,6 +410,13 @@ export default function SettingsPage() {
                     const data = await staffRes.json();
                     setMasterData(prev => ({ ...prev, staff: data.map(s => ({ ...s, id: s._id, isActive: s.isActive ?? true })) }));
                 }
+
+                // Fetch Units
+                const unitsRes = await fetch('/api/units');
+                if (unitsRes.ok) {
+                    const data = await unitsRes.json();
+                    setMasterData(prev => ({ ...prev, units: data.map(u => ({ ...u, id: u._id, isActive: u.isActive ?? true })) }));
+                }
             } catch (error) {
                 console.error('Error fetching master data:', error);
             }
